@@ -2,12 +2,21 @@ import FluentKit
 import Hummingbird
 
 extension HBApplication {
+    /// Create Fluent management object.
+    public func initializeFluent() {
+        self.fluent = .init(application: self)
+    }
+
+    /// Get default database
     public var db: Database {
         self.db(nil)
     }
 
+    /// Get database with ID
+    /// - Parameter id: database id
+    /// - Returns: database
     public func db(_ id: DatabaseID?) -> Database {
-        self.databases
+        self.fluent.databases
             .database(
                 id,
                 logger: self.logger,
@@ -16,17 +25,11 @@ extension HBApplication {
             )!
     }
 
-    public var databases: Databases {
-        self.fluent.databases
-    }
-
-    public var migrations: Migrations {
-        self.fluent.migrations
-    }
-
-    struct Fluent {
-        let databases: Databases
-        let migrations: Migrations
+    public struct Fluent {
+        /// databases attached
+        public let databases: Databases
+        /// list of migrations
+        public let migrations: Migrations
         let application: HBApplication
         
         init(application: HBApplication) {
@@ -39,6 +42,7 @@ extension HBApplication {
             self.databases.shutdown()
         }
 
+        /// fluent migrator
         public var migrator: Migrator {
             Migrator(
                 databases: self.databases,
@@ -48,20 +52,23 @@ extension HBApplication {
             )
         }
 
+        /// Run migration if needed
         public func migrate() -> EventLoopFuture<Void> {
             self.migrator.setupIfNeeded().flatMap {
                 self.migrator.prepareBatch()
             }
         }
 
+        /// Run revert if needed
         public func revert() -> EventLoopFuture<Void> {
             self.migrator.setupIfNeeded().flatMap {
                 self.migrator.revertAllBatches()
             }
         }
     }
-    
-    var fluent: Fluent {
+
+    /// Fluent interface object
+    public var fluent: Fluent {
         get { self.extensions.get(\.fluent) }
         set {
             self.extensions.set(\.fluent, value: newValue) { fluent in
