@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "hummingbird-fluent", targets: ["hummingbird-fluent"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/adam-fowler/hummingbird.git", .branch("main")),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", .branch("main")),
         .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.0.0")
     ],
     targets: [
