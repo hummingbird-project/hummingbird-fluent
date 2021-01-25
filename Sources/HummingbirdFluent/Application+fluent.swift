@@ -21,7 +21,7 @@ extension HBApplication {
                 id,
                 logger: self.logger,
                 on: self.eventLoopGroup.next(),
-                history: nil
+                history: self.fluent.history.enabled ? self.fluent.history.history: nil
             )!
     }
 
@@ -30,6 +30,7 @@ extension HBApplication {
         public let databases: Databases
         /// list of migrations
         public let migrations: Migrations
+        /// application
         let application: HBApplication
         
         init(application: HBApplication) {
