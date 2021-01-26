@@ -3,7 +3,7 @@ import Hummingbird
 
 extension HBApplication {
     /// Create Fluent management object.
-    public func initializeFluent() {
+    public func addFluent() {
         self.fluent = .init(application: self)
     }
 
