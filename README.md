@@ -37,3 +37,5 @@ app.router
     }
 ```
 Here we are returning a `Todo` with an id specified in the path.
+
+You can find more documentation on Fluent [here](https://docs.vapor.codes/4.0/fluent/overview/).
