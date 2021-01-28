@@ -21,4 +21,3 @@ extension HBRequest {
 
     public var fluent: Fluent { return .init(request: self) }
 }
-

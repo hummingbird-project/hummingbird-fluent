@@ -6,24 +6,24 @@ extension HBApplication.Fluent {
         let application: HBApplication
 
         public var enabled: Bool {
-            application.extensions.get(\.fluent.history.enabled) ?? false
+            self.application.extensions.get(\.fluent.history.enabled) ?? false
         }
 
         public var history: QueryHistory? {
-            application.extensions.get(\.fluent.history.history)
+            self.application.extensions.get(\.fluent.history.history)
         }
 
         public func start() {
-            application.extensions.set(\.fluent.history.enabled, value: true)
-            application.extensions.set(\.fluent.history.history, value: .init())
+            self.application.extensions.set(\.fluent.history.enabled, value: true)
+            self.application.extensions.set(\.fluent.history.history, value: .init())
         }
 
         public func stop() {
-            application.extensions.set(\.fluent.history.enabled, value: false)
+            self.application.extensions.set(\.fluent.history.enabled, value: false)
         }
 
         public func clear() {
-            application.extensions.set(\.fluent.history.history, value: .init())
+            self.application.extensions.set(\.fluent.history.history, value: .init())
         }
     }
 

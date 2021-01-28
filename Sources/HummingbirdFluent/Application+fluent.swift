@@ -21,7 +21,7 @@ extension HBApplication {
                 id,
                 logger: self.logger,
                 on: self.eventLoopGroup.next(),
-                history: self.fluent.history.enabled ? self.fluent.history.history: nil
+                history: self.fluent.history.enabled ? self.fluent.history.history : nil
             )!
     }
 
@@ -32,13 +32,13 @@ extension HBApplication {
         public let migrations: Migrations
         /// application
         let application: HBApplication
-        
+
         init(application: HBApplication) {
             self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
             self.migrations = .init()
             self.application = application
         }
-        
+
         func shutdown() {
             self.databases.shutdown()
         }

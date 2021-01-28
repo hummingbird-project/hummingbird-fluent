@@ -13,12 +13,12 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", .branch("main")),
-        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.0.0")
+        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.0.0"),
     ],
     targets: [
         .target(name: "HummingbirdFluent", dependencies: [
             .product(name: "Hummingbird", package: "hummingbird"),
-            .product(name: "FluentKit", package: "fluent-kit")
+            .product(name: "FluentKit", package: "fluent-kit"),
         ]),
     ]
 )
