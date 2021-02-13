@@ -31,7 +31,7 @@ extension HBApplication {
         /// list of migrations
         public let migrations: Migrations
         /// application
-        let application: HBApplication
+        unowned let application: HBApplication
 
         init(application: HBApplication) {
             self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
