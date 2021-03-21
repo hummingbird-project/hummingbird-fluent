@@ -11,11 +11,12 @@ jobs:
     strategy:
       matrix:
         image: ['nightly-5.4-bionic', 'nightly-5.4-focal', 'nightly-5.4-centos8', 'nightly-5.4-amazonlinux2']
+    
     container:
       image: swiftlang/swift:${{ matrix.image }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Test
+    - name: Build
       run: |
-        swift test --enable-test-discovery  --enable-code-coverage --sanitize=thread
+        swift build
