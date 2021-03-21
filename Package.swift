@@ -20,5 +20,9 @@ let package = Package(
             .product(name: "Hummingbird", package: "hummingbird"),
             .product(name: "FluentKit", package: "fluent-kit"),
         ]),
+        .testTarget(name: "HummingbirdFluentTests", dependencies: [
+            .byName(name: "HummingbirdFluent"),
+            .product(name: "HummingbirdXCT", package: "hummingbird"),
+        ]),
     ]
 )
