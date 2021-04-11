@@ -12,8 +12,10 @@ let package = Package(
         .library(name: "HummingbirdFluent", targets: ["HummingbirdFluent"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "0.5.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", .branch("persistence")),
         .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.0.0"),
+        // used in tests
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0"),
     ],
     targets: [
         .target(name: "HummingbirdFluent", dependencies: [
@@ -21,6 +23,7 @@ let package = Package(
             .product(name: "FluentKit", package: "fluent-kit"),
         ]),
         .testTarget(name: "HummingbirdFluentTests", dependencies: [
+            .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             .byName(name: "HummingbirdFluent"),
             .product(name: "HummingbirdXCT", package: "hummingbird"),
         ]),
