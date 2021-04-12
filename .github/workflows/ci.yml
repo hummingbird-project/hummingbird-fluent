@@ -14,6 +14,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  macOS:
+    runs-on: macOS-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: SPM tests
+      run: swift test --enable-code-coverage --sanitize=thread
+    - name: Convert coverage files
+      run: |
+        xcrun llvm-cov export -format "lcov" \
+          .build/debug/hummingbird-fluentPackageTests.xctest/Contents/MacOs/hummingbird-fluentPackageTests \
+          -ignore-filename-regex="\/Tests\/" \
+          -instr-profile=.build/debug/codecov/default.profdata > info.lcov
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        file: info.lcov
   linux:
     runs-on: ubuntu-latest
     strategy:
@@ -25,6 +42,16 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Build
+    - name: Test
       run: |
-        swift build
+        swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+    - name: Convert coverage files
+      run: |
+        llvm-cov export -format="lcov" \
+          .build/debug/hummingbird-fluentPackageTests.xctest \
+          -ignore-filename-regex="\/Tests\/" \
+          -instr-profile .build/debug/codecov/default.profdata > info.lcov
+    - name: Upload to codecov.io
+      uses: codecov/codecov-action@v1
+      with:
+        file: info.lcov
