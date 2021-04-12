@@ -25,7 +25,13 @@ extension HBRequest {
     /// - Parameter id: database id
     /// - Returns: database
     public func db(_ id: DatabaseID?) -> Database {
-        self.application.db(id)
+        self.application.fluent.databases
+            .database(
+                id,
+                logger: self.logger,
+                on: self.eventLoop,
+                history: self.application.fluent.history.enabled ? self.application.fluent.history.history : nil
+            )!
     }
 
     /// Object to attach fluent related structures (currently unused)

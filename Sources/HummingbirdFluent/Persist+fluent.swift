@@ -28,7 +28,7 @@ final class PersistModel: Model {
     @Field(key: "value")
     var value: Data
 
-    @Timestamp(key: "expires", on: .delete, format: .iso8601)
+    @Field(key: "expires")
     var expires: Date?
 
     init(id: String, value: Data, expires: Date? = nil) {
@@ -42,8 +42,8 @@ struct CreatePersistModel: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
         database.schema("_persist_")
             .field(.id, .string, .identifier(auto: false))
-            .field(.string("value"), .custom("JSONB"), .required)
-            .field(.string("expires"), .date)
+            .field("value", .data, .required)
+            .field("expires", .datetime)
             .create()
     }
 
@@ -52,58 +52,115 @@ struct CreatePersistModel: Migration {
     }
 }
 
-/// In memory driver for persist system for storing persistent cross request key/value pairs
-struct HBFluentPersistDriver: HBPersistDriver {
-    init(application: HBApplication) {
+/// Fluent driver for persist system for storing persistent cross request key/value pairs
+class HBFluentPersistDriver: HBPersistDriver {
+    /// Initialize HBFluentPersistDriver
+    init(application: HBApplication, databaseID: DatabaseID?) {
         self.application = application
-        self.application.fluent.migrations.add(CreatePersistModel())
-    }
-
-    func set<Object: Codable>(key: String, value: Object, on eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        do {
-            let data = try JSONEncoder().encode(value)
-            let model = PersistModel(id: key, value: data, expires: nil)
-            return model.save(on: application.db)
-                .map { _ in }
-        } catch {
-            return eventLoop.makeFailedFuture(error)
+        self.databaseID = databaseID
+        application.fluent.migrations.add(CreatePersistModel())
+        application.eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .seconds(10), delay: .hours(1)) { _ in
+            self.tidy()
         }
     }
 
-    func set<Object: Codable>(key: String, value: Object, expires: TimeAmount, on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    /// Set value for key.
+    ///
+    /// Checks to see if key already exists, if it does then updates the value for that key otherwise saves a value for key
+    func set<Object: Codable>(key: String, value: Object, request: HBRequest) -> EventLoopFuture<Void> {
         do {
+            let db = request.db(self.databaseID)
             let data = try JSONEncoder().encode(value)
-            let model = PersistModel(id: key, value: data, expires: Date() + Double(expires.nanoseconds) / 1_000_000_000)
-            return model.save(on: application.db)
-                .map { _ in }
+            return PersistModel.query(on: db)
+                .filter(\._$id == key)
+                .first()
+                .flatMap { model in
+                    if let model = model {
+                        model.value = data
+                        model.expires = Date.distantFuture
+                        return model.update(on: db).map { _ in }
+                    } else {
+                        let model = PersistModel(id: key, value: data, expires: Date.distantFuture)
+                        return model.save(on: db).map { _ in }
+                    }
+                }
+                .flatMapErrorThrowing { error in
+                    print(error)
+                    throw error
+                }
         } catch {
-            return eventLoop.makeFailedFuture(error)
+            return request.eventLoop.makeFailedFuture(error)
         }
     }
 
-    func get<Object: Codable>(key: String, as object: Object.Type, on eventLoop: EventLoop) -> EventLoopFuture<Object?> {
-        return PersistModel.find(key, on: application.db)
+    func set<Object: Codable>(key: String, value: Object, expires: TimeAmount, request: HBRequest) -> EventLoopFuture<Void> {
+        do {
+            let db = request.db(self.databaseID)
+            let data = try JSONEncoder().encode(value)
+            return PersistModel.query(on: db)
+                .filter(\._$id == key)
+                .first()
+                .flatMap { model in
+                    if let model = model {
+                        model.value = data
+                        model.expires = Date() + Double(expires.nanoseconds) / 1_000_000_000
+                        return model.update(on: db).map { _ in }
+                    } else {
+                        let model = PersistModel(id: key, value: data, expires: Date() + Double(expires.nanoseconds) / 1_000_000_000)
+                        return model.save(on: db).map { _ in }
+                    }
+                }
+                .flatMapErrorThrowing { error in
+                    print(error)
+                    throw error
+                }
+        } catch {
+            return request.eventLoop.makeFailedFuture(error)
+        }
+    }
+
+    func get<Object: Codable>(key: String, as object: Object.Type, request: HBRequest) -> EventLoopFuture<Object?> {
+        return PersistModel.query(on: request.db(self.databaseID))
+            .filter(\._$id == key)
+            .filter(\.$expires > Date())
+            .first()
             .flatMapThrowing {
                 guard let data = $0?.value else { return nil }
                 return try JSONDecoder().decode(object, from: data)
             }
-    }
-
-    func remove(key: String, on eventLoop: EventLoop) -> EventLoopFuture<Void> {
-        return PersistModel.find(key, on: application.db)
-            .flatMap { model in
-                guard let model = model else { return eventLoop.makeSucceededVoidFuture() }
-                return model.delete(force: true, on: application.db)
+            .flatMapErrorThrowing { error in
+                print(error)
+                throw error
             }
     }
 
+    func remove(key: String, request: HBRequest) -> EventLoopFuture<Void> {
+        return PersistModel.find(key, on: request.db(self.databaseID))
+            .flatMap { model in
+                guard let model = model else { return request.eventLoop.makeSucceededVoidFuture() }
+                return model.delete(force: true, on: request.db(self.databaseID))
+            }
+    }
+
+    func tidy() {
+        _ = PersistModel.query(on: application.db(self.databaseID))
+            .filter(\.$expires < Date())
+            .delete()
+    }
+
     let application: HBApplication
+    let databaseID: DatabaseID?
 }
 
 /// Factory class for persist drivers
 extension HBPersistDriverFactory {
     /// In memory driver for persist system
     public static var fluent: HBPersistDriverFactory {
-        .init(create: { app in HBFluentPersistDriver(application: app) })
+        .init(create: { app in HBFluentPersistDriver(application: app, databaseID: nil) })
+    }
+
+    /// In memory driver for persist system
+    public static func fluent(_ datebaseID: DatabaseID?) -> HBPersistDriverFactory {
+        .init(create: { app in HBFluentPersistDriver(application: app, databaseID: datebaseID) })
     }
 }
