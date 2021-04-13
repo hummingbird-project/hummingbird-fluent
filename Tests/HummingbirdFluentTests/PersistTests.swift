@@ -13,7 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 import FluentSQLiteDriver
-import FluentPostgresDriver
+//import FluentMySQLDriver
+//import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
 import XCTest
@@ -25,7 +26,15 @@ final class PersistTests: XCTestCase {
         // add Fluent
         app.addFluent()
         // add sqlite database
-        app.fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
+        app.fluent.databases.use(.sqlite(.memory), as: .sqlite)
+        //app.fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
+        /*app.fluent.databases.use(.mysql(
+                                    hostname: "localhost",
+                                    username: "root",
+                                    password: "vapor",
+                                    database: "vapor",
+                                    tlsConfiguration: .forClient(certificateVerification: .none)
+        ), as: .mysql)*/
         // add persist
         app.addPersist(using: .fluent)
         // run migrations
