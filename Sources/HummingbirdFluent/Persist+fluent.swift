@@ -20,6 +20,10 @@ import Hummingbird
 class HBFluentPersistDriver: HBPersistDriver {
     /// Initialize HBFluentPersistDriver
     init(application: HBApplication, databaseID: DatabaseID?) {
+        precondition(
+            application.extensions.exists(\HBApplication.fluent),
+            "Cannot use Fluent persist driver without having setup Fluent. Please call HBApplication.addFluent()"
+        )
         self.application = application
         self.databaseID = databaseID
         application.fluent.migrations.add(CreatePersistModel())
@@ -101,7 +105,7 @@ class HBFluentPersistDriver: HBPersistDriver {
 
     /// tidy up database by cleaning out expired keys
     func tidy() {
-        _ = PersistModel.query(on: application.db(self.databaseID))
+        _ = PersistModel.query(on: self.application.db(self.databaseID))
             .filter(\.$expires < Date())
             .delete()
     }
