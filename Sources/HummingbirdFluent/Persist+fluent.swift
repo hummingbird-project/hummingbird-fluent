@@ -44,7 +44,15 @@ class HBFluentPersistDriver: HBPersistDriver {
             let data = try JSONEncoder().encode(value)
             let date = expires.map { Date() + Double($0.nanoseconds) / 1_000_000_000 } ?? Date.distantFuture
             let model = PersistModel(id: key, data: data, expires: date)
-            return model.save(on: db).map { _ in }
+            return model.save(on: db)
+                .flatMapErrorThrowing { error in
+                    // if save fails because of constraint then throw duplicate error
+                    if let error = error as? DatabaseError, error.isConstraintFailure {
+                        throw HBPersistError.duplicate
+                    }
+                    throw error
+                }
+                .map { _ in }
         } catch {
             return request.eventLoop.makeFailedFuture(error)
         }
@@ -56,23 +64,28 @@ class HBFluentPersistDriver: HBPersistDriver {
             let db = request.db(self.databaseID)
             let data = try JSONEncoder().encode(value)
             let date = expires.map { Date() + Double($0.nanoseconds) / 1_000_000_000 } ?? Date.distantFuture
-            return PersistModel.query(on: db)
-                .filter(\._$id == key)
-                .first()
-                .flatMap { model in
-                    if let model = model {
-                        model.data = data
-                        model.expires = date
-                        return model.update(on: db).map { _ in }
-                    } else {
-                        let model = PersistModel(id: key, data: data, expires: date)
-                        return model.save(on: db).map { _ in }
+            let model = PersistModel(id: key, data: data, expires: date)
+            return model.save(on: db)
+                .flatMapError { error in
+                    // if save fails because of constraint then try to update instead
+                    if let error = error as? DatabaseError, error.isConstraintFailure {
+                        return PersistModel.query(on: db)
+                            .filter(\._$id == key)
+                            .first()
+                            .flatMap { model in
+                                if let model = model {
+                                    model.data = data
+                                    model.expires = date
+                                    return model.update(on: db).map { _ in }
+                                } else {
+                                    let model = PersistModel(id: key, data: data, expires: date)
+                                    return model.save(on: db).map { _ in }
+                                }
+                            }
                     }
+                    return request.eventLoop.makeFailedFuture(error)
                 }
-                .flatMapErrorThrowing { error in
-                    print(error)
-                    throw error
-                }
+                .map { _ in }
         } catch {
             return request.eventLoop.makeFailedFuture(error)
         }
