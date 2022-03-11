@@ -22,12 +22,12 @@ extension HBApplication.Fluent {
     /// Run migration if needed
     public func migrate() async throws {
         try await self.migrate().get()
-    }    
+    }
 
     /// Run revert if needed
     public func revert() async throws {
         try await self.revert().get()
-    }    
+    }
 }
 
 #endif // compiler(>=5.5) && canImport(_Concurrency)
