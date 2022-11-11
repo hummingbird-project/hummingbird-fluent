@@ -15,6 +15,7 @@
 import FluentKit
 import Foundation
 import Hummingbird
+import NIOCore
 
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
 class HBFluentPersistDriver: HBPersistDriver {
