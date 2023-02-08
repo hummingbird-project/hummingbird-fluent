@@ -10,7 +10,7 @@ let package = Package(
         .library(name: "HummingbirdFluent", targets: ["HummingbirdFluent"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "1.0.0-rc"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "1.0.0"),
         .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.17.0"),
         // used in tests
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0"),
