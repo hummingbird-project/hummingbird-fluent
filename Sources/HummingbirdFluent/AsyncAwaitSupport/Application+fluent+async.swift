@@ -12,13 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if compiler(>=5.5) && canImport(_Concurrency)
+#if compiler(>=5.5.2) && canImport(_Concurrency)
 
 import Hummingbird
 
 /// async/await
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-extension HBApplication.Fluent {
+extension HBFluent {
     /// Run migration if needed
     public func migrate() async throws {
         try await self.migrate().get()
@@ -30,4 +30,4 @@ extension HBApplication.Fluent {
     }
 }
 
-#endif // compiler(>=5.5) && canImport(_Concurrency)
+#endif // compiler(>=5.5.2) && canImport(_Concurrency)
