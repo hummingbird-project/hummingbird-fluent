@@ -27,6 +27,7 @@ let package = Package(
             // .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
             // .product(name: "FluentMySQLDriver", package: "fluent-mysql-driver"),
             .byName(name: "HummingbirdFluent"),
+            .product(name: "HummingbirdFoundation", package: "hummingbird"),
             .product(name: "HummingbirdXCT", package: "hummingbird"),
         ]),
     ]

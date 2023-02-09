@@ -15,7 +15,7 @@
 import FluentKit
 import Hummingbird
 
-extension HBApplication.Fluent {
+extension HBFluent {
     public struct History {
         let application: HBApplication
 

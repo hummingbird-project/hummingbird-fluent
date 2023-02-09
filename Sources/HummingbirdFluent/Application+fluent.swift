@@ -15,6 +15,49 @@
 import FluentKit
 import Hummingbird
 
+public struct HBFluent {
+    /// databases attached
+    public let databases: Databases
+    /// list of migrations
+    public let migrations: Migrations
+    /// application
+    unowned let application: HBApplication
+
+    init(application: HBApplication) {
+        self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
+        self.migrations = .init()
+        self.application = application
+    }
+
+    func shutdown() {
+        self.databases.shutdown()
+    }
+
+    /// fluent migrator
+    public var migrator: Migrator {
+        Migrator(
+            databases: self.databases,
+            migrations: self.migrations,
+            logger: self.application.logger,
+            on: self.application.eventLoopGroup.next()
+        )
+    }
+
+    /// Run migration if needed
+    public func migrate() -> EventLoopFuture<Void> {
+        self.migrator.setupIfNeeded().flatMap {
+            self.migrator.prepareBatch()
+        }
+    }
+
+    /// Run revert if needed
+    public func revert() -> EventLoopFuture<Void> {
+        self.migrator.setupIfNeeded().flatMap {
+            self.migrator.revertAllBatches()
+        }
+    }
+}
+
 extension HBApplication {
     /// Create Fluent management object.
     public func addFluent() {
@@ -39,51 +82,8 @@ extension HBApplication {
             )!
     }
 
-    public struct Fluent {
-        /// databases attached
-        public let databases: Databases
-        /// list of migrations
-        public let migrations: Migrations
-        /// application
-        unowned let application: HBApplication
-
-        init(application: HBApplication) {
-            self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
-            self.migrations = .init()
-            self.application = application
-        }
-
-        func shutdown() {
-            self.databases.shutdown()
-        }
-
-        /// fluent migrator
-        public var migrator: Migrator {
-            Migrator(
-                databases: self.databases,
-                migrations: self.migrations,
-                logger: self.application.logger,
-                on: self.application.eventLoopGroup.next()
-            )
-        }
-
-        /// Run migration if needed
-        public func migrate() -> EventLoopFuture<Void> {
-            self.migrator.setupIfNeeded().flatMap {
-                self.migrator.prepareBatch()
-            }
-        }
-
-        /// Run revert if needed
-        public func revert() -> EventLoopFuture<Void> {
-            self.migrator.setupIfNeeded().flatMap {
-                self.migrator.revertAllBatches()
-            }
-        }
-    }
-
     /// Fluent interface object
-    public var fluent: Fluent {
+    public var fluent: HBFluent {
         get { self.extensions.get(\.fluent) }
         set {
             self.extensions.set(\.fluent, value: newValue) { fluent in
