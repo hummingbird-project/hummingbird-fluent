@@ -15,6 +15,9 @@
 import FluentKit
 import Hummingbird
 
+/// Manage fluent databases and migrations
+///
+/// This type is available from `HBApplication` after you have called `HBApplication.addFluent`.
 public struct HBFluent {
     /// databases attached
     public let databases: Databases
