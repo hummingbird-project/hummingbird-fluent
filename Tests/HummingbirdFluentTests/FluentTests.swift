@@ -12,8 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if compiler(>=5.5.2) && canImport(_Concurrency)
-
 import FluentKit
 import FluentSQLiteDriver
 // import FluentMySQLDriver
@@ -129,5 +127,3 @@ final class FluentTests: XCTestCase {
         XCTAssertEqual(planet2.name, "Saturn")
     }
 }
-
-#endif // compiler(>=5.5.2) && canImport(_Concurrency)

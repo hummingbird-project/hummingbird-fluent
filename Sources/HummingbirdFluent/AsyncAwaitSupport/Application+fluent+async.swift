@@ -12,8 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if compiler(>=5.5.2) && canImport(_Concurrency)
-
 import Hummingbird
 
 /// async/await
@@ -29,5 +27,3 @@ extension HBFluent {
         try await self.revert().get()
     }
 }
-
-#endif // compiler(>=5.5.2) && canImport(_Concurrency)
