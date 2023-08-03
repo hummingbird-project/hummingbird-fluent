@@ -54,6 +54,8 @@ public struct HBFluent {
     /// Fluent history setup
     public let history: History
 
+    ///  Initialize HBFluent
+    /// - Parameter application: application to get NIOThreadPool, EventLoopGroup and Logger from
     init(application: HBApplication) {
         self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
         self.migrations = .init()
@@ -62,7 +64,12 @@ public struct HBFluent {
         self.history = .init()
     }
 
-    init(
+    /// Initialize HBFluent
+    /// - Parameters:
+    ///   - eventLoopGroup: EventLoopGroup used by databases
+    ///   - threadPool: NIOThreadPool used by databases
+    ///   - logger: Logger used by databases
+    public init(
         eventLoopGroup: EventLoopGroup,
         threadPool: NIOThreadPool,
         logger: Logger
@@ -74,7 +81,8 @@ public struct HBFluent {
         self.history = .init()
     }
 
-    func shutdown() {
+    /// Shutdown databases
+    public func shutdown() {
         self.databases.shutdown()
     }
 
@@ -102,7 +110,7 @@ public struct HBFluent {
         }
     }
 
-    public func db(_ id: DatabaseID?, on eventLoop: EventLoop) -> Database {
+    public func db(_ id: DatabaseID? = nil, on eventLoop: EventLoop) -> Database {
         self.databases
             .database(
                 id,
