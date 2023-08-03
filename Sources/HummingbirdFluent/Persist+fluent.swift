@@ -20,6 +20,9 @@ import NIOCore
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
 public class HBFluentPersistDriver: HBPersistDriver {
     /// Initialize HBFluentPersistDriver
+    /// - Parameters:
+    ///   - fluent: Fluent setup
+    ///   - databaseID: ID of database to use
     public init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
         self.fluent = fluent
         self.databaseID = databaseID
@@ -122,6 +125,7 @@ public class HBFluentPersistDriver: HBPersistDriver {
             .delete()
     }
 
+    /// Get database connection on event loop
     func database(on eventLoop: EventLoop) -> Database {
         self.fluent.db(self.databaseID, on: eventLoop)
     }
@@ -133,7 +137,7 @@ public class HBFluentPersistDriver: HBPersistDriver {
 
 /// Factory class for persist drivers
 extension HBPersistDriverFactory {
-    /// fluent driver for persist system
+    /// Fluent driver for persist system
     public static var fluent: HBPersistDriverFactory {
         .init(create: { app in
             precondition(
@@ -144,7 +148,7 @@ extension HBPersistDriverFactory {
         })
     }
 
-    /// fluent driver for persist system using a specific database id
+    /// Fluent driver for persist system using a specific database id
     public static func fluent(_ datebaseID: DatabaseID?) -> HBPersistDriverFactory {
         .init(create: { app in
             precondition(

@@ -17,11 +17,14 @@ import Hummingbird
 
 /// Manage fluent databases and migrations
 ///
-/// This type is available from `HBApplication` after you have called `HBApplication.addFluent`.
+/// You can either create this separate from `HBApplication` or add it to your application
+/// using `HBApplication.addFluent`.
 public struct HBFluent {
     /// Fluent history management
     public class History {
+        /// Is history recording enabled
         public private(set) var enabled: Bool
+        // History of queries to Fluent
         public private(set) var history: QueryHistory?
 
         init() {
@@ -29,25 +32,28 @@ public struct HBFluent {
             self.history = nil
         }
 
+        /// Start recording history
         public func start() {
             self.enabled = true
             self.history = .init()
         }
 
+        /// Stop recording history
         public func stop() {
             self.enabled = false
         }
 
+        /// Clear history
         public func clear() {
             self.history = .init()
         }
     }
 
-    /// databases attached
+    /// Databases attached
     public let databases: Databases
-    /// list of migrations
+    /// List of migrations
     public let migrations: Migrations
-    /// event loop group used by migrator
+    /// Event loop group used by migrator
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
@@ -110,6 +116,12 @@ public struct HBFluent {
         }
     }
 
+    /// Return Database connection
+    ///
+    /// - Parameters:
+    ///   - id: ID of database
+    ///   - eventLoop: Eventloop database connection is running on
+    /// - Returns: Database connection
     public func db(_ id: DatabaseID? = nil, on eventLoop: EventLoop) -> Database {
         self.databases
             .database(
