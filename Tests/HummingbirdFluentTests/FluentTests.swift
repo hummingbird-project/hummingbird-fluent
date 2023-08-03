@@ -155,7 +155,10 @@ final class FluentTests: XCTestCase {
         }
 
         try app.XCTStart()
-        defer { fluent.shutdown(); app.XCTStop() }
+        defer {
+            fluent.shutdown()
+            app.XCTStop()
+        }
 
         let planet = Planet(name: "Saturn")
         let id = try app.XCTExecute(

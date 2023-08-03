@@ -18,9 +18,9 @@ import Hummingbird
 import NIOCore
 
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
-class HBFluentPersistDriver: HBPersistDriver {
+public class HBFluentPersistDriver: HBPersistDriver {
     /// Initialize HBFluentPersistDriver
-    init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
+    public init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
         self.fluent = fluent
         self.databaseID = databaseID
         self.fluent.migrations.add(CreatePersistModel())
@@ -30,17 +30,12 @@ class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// shutdown driver, cancel tidy task
-    func shutdown() {
+    public func shutdown() {
         self.tidyTask?.cancel()
     }
 
-    ///
-    static var persistModelMigration: Migration {
-        return CreatePersistModel()
-    }
-
     /// Create new key. This doesn't check for the existence of this key already so may fail if the key already exists
-    func create<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
+    public func create<Object: Codable>(key: String, value: Object, expires: TimeAmount? = nil, request: HBRequest) -> EventLoopFuture<Void> {
         do {
             let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)
@@ -61,7 +56,7 @@ class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Set value for key.
-    func set<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
+    public func set<Object: Codable>(key: String, value: Object, expires: TimeAmount? = nil, request: HBRequest) -> EventLoopFuture<Void> {
         do {
             let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)
@@ -94,7 +89,7 @@ class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Get value for key
-    func get<Object: Codable>(key: String, as object: Object.Type, request: HBRequest) -> EventLoopFuture<Object?> {
+    public func get<Object: Codable>(key: String, as object: Object.Type, request: HBRequest) -> EventLoopFuture<Object?> {
         let db = self.database(on: request.eventLoop)
         return PersistModel.query(on: db)
             .filter(\._$id == key)
@@ -111,7 +106,7 @@ class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Remove key
-    func remove(key: String, request: HBRequest) -> EventLoopFuture<Void> {
+    public func remove(key: String, request: HBRequest) -> EventLoopFuture<Void> {
         let db = self.database(on: request.eventLoop)
         return PersistModel.find(key, on: db)
             .flatMap { model in
