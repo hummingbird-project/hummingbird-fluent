@@ -20,15 +20,11 @@ import NIOCore
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
 class HBFluentPersistDriver: HBPersistDriver {
     /// Initialize HBFluentPersistDriver
-    init(application: HBApplication, databaseID: DatabaseID?) {
-        precondition(
-            application.extensions.exists(\HBApplication.fluent),
-            "Cannot use Fluent persist driver without having setup Fluent. Please call HBApplication.addFluent()"
-        )
-        self.application = application
+    init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
+        self.fluent = fluent
         self.databaseID = databaseID
-        application.fluent.migrations.add(CreatePersistModel())
-        self.tidyTask = application.eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .hours(1), delay: .hours(1)) { _ in
+        self.fluent.migrations.add(CreatePersistModel())
+        self.tidyTask = fluent.eventLoopGroup.next().scheduleRepeatedTask(initialDelay: .hours(1), delay: .hours(1)) { _ in
             self.tidy()
         }
     }
@@ -38,10 +34,15 @@ class HBFluentPersistDriver: HBPersistDriver {
         self.tidyTask?.cancel()
     }
 
+    ///
+    static var persistModelMigration: Migration {
+        return CreatePersistModel()
+    }
+
     /// Create new key. This doesn't check for the existence of this key already so may fail if the key already exists
     func create<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
         do {
-            let db = request.db(self.databaseID)
+            let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)
             let date = expires.map { Date() + Double($0.nanoseconds) / 1_000_000_000 } ?? Date.distantFuture
             let model = PersistModel(id: key, data: data, expires: date)
@@ -62,7 +63,7 @@ class HBFluentPersistDriver: HBPersistDriver {
     /// Set value for key.
     func set<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
         do {
-            let db = request.db(self.databaseID)
+            let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)
             let date = expires.map { Date() + Double($0.nanoseconds) / 1_000_000_000 } ?? Date.distantFuture
             let model = PersistModel(id: key, data: data, expires: date)
@@ -94,7 +95,8 @@ class HBFluentPersistDriver: HBPersistDriver {
 
     /// Get value for key
     func get<Object: Codable>(key: String, as object: Object.Type, request: HBRequest) -> EventLoopFuture<Object?> {
-        return PersistModel.query(on: request.db(self.databaseID))
+        let db = self.database(on: request.eventLoop)
+        return PersistModel.query(on: db)
             .filter(\._$id == key)
             .filter(\.$expires > Date())
             .first()
@@ -110,21 +112,26 @@ class HBFluentPersistDriver: HBPersistDriver {
 
     /// Remove key
     func remove(key: String, request: HBRequest) -> EventLoopFuture<Void> {
-        return PersistModel.find(key, on: request.db(self.databaseID))
+        let db = self.database(on: request.eventLoop)
+        return PersistModel.find(key, on: db)
             .flatMap { model in
                 guard let model = model else { return request.eventLoop.makeSucceededVoidFuture() }
-                return model.delete(force: true, on: request.db(self.databaseID))
+                return model.delete(force: true, on: db)
             }
     }
 
     /// tidy up database by cleaning out expired keys
     func tidy() {
-        _ = PersistModel.query(on: self.application.db(self.databaseID))
+        _ = PersistModel.query(on: self.database(on: self.fluent.eventLoopGroup.next()))
             .filter(\.$expires < Date())
             .delete()
     }
 
-    let application: HBApplication
+    func database(on eventLoop: EventLoop) -> Database {
+        self.fluent.db(self.databaseID, on: eventLoop)
+    }
+
+    let fluent: HBFluent
     let databaseID: DatabaseID?
     var tidyTask: RepeatedTask?
 }
@@ -133,12 +140,24 @@ class HBFluentPersistDriver: HBPersistDriver {
 extension HBPersistDriverFactory {
     /// fluent driver for persist system
     public static var fluent: HBPersistDriverFactory {
-        .init(create: { app in HBFluentPersistDriver(application: app, databaseID: nil) })
+        .init(create: { app in
+            precondition(
+                app.extensions.exists(\HBApplication.fluent),
+                "Cannot use Fluent persist driver without having setup Fluent. Please call HBApplication.addFluent()"
+            )
+            return HBFluentPersistDriver(fluent: app.fluent, databaseID: nil)
+        })
     }
 
     /// fluent driver for persist system using a specific database id
     public static func fluent(_ datebaseID: DatabaseID?) -> HBPersistDriverFactory {
-        .init(create: { app in HBFluentPersistDriver(application: app, databaseID: datebaseID) })
+        .init(create: { app in
+            precondition(
+                app.extensions.exists(\HBApplication.fluent),
+                "Cannot use Fluent persist driver without having setup Fluent. Please call HBApplication.addFluent()"
+            )
+            return HBFluentPersistDriver(fluent: app.fluent, databaseID: datebaseID)
+        })
     }
 }
 
