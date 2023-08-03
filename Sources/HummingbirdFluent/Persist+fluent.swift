@@ -35,7 +35,7 @@ public class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Create new key. This doesn't check for the existence of this key already so may fail if the key already exists
-    public func create<Object: Codable>(key: String, value: Object, expires: TimeAmount? = nil, request: HBRequest) -> EventLoopFuture<Void> {
+    public func create<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
         do {
             let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)
@@ -56,7 +56,7 @@ public class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Set value for key.
-    public func set<Object: Codable>(key: String, value: Object, expires: TimeAmount? = nil, request: HBRequest) -> EventLoopFuture<Void> {
+    public func set<Object: Codable>(key: String, value: Object, expires: TimeAmount?, request: HBRequest) -> EventLoopFuture<Void> {
         do {
             let db = self.database(on: request.eventLoop)
             let data = try JSONEncoder().encode(value)

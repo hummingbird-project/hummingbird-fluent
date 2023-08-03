@@ -231,7 +231,7 @@ final class PersistTests: XCTestCase {
         app.router.put("/persist/:tag") { request -> EventLoopFuture<HTTPResponseStatus> in
             guard let tag = request.parameters.get("tag") else { return request.failure(.badRequest) }
             guard let buffer = request.body.buffer else { return request.failure(.badRequest) }
-            return persist.set(key: tag, value: String(buffer: buffer), request: request)
+            return persist.set(key: tag, value: String(buffer: buffer), expires: nil, request: request)
                 .map { _ in .ok }
         }
         app.router.get("/persist/:tag") { request -> EventLoopFuture<String?> in
