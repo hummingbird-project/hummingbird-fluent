@@ -14,52 +14,8 @@
 
 import FluentKit
 import Hummingbird
-
-/// Manage fluent databases and migrations
-///
-/// This type is available from `HBApplication` after you have called `HBApplication.addFluent`.
-public struct HBFluent {
-    /// databases attached
-    public let databases: Databases
-    /// list of migrations
-    public let migrations: Migrations
-    /// application
-    unowned let application: HBApplication
-
-    init(application: HBApplication) {
-        self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
-        self.migrations = .init()
-        self.application = application
-    }
-
-    func shutdown() {
-        self.databases.shutdown()
-    }
-
-    /// fluent migrator
-    public var migrator: Migrator {
-        Migrator(
-            databases: self.databases,
-            migrations: self.migrations,
-            logger: self.application.logger,
-            on: self.application.eventLoopGroup.next()
-        )
-    }
-
-    /// Run migration if needed
-    public func migrate() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.prepareBatch()
-        }
-    }
-
-    /// Run revert if needed
-    public func revert() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.revertAllBatches()
-        }
-    }
-}
+import Logging
+import NIOCore
 
 extension HBApplication {
     /// Create Fluent management object.
@@ -76,13 +32,7 @@ extension HBApplication {
     /// - Parameter id: database id
     /// - Returns: database
     public func db(_ id: DatabaseID?) -> Database {
-        self.fluent.databases
-            .database(
-                id,
-                logger: self.logger,
-                on: self.eventLoopGroup.next(),
-                history: self.fluent.history.enabled ? self.fluent.history.history : nil
-            )!
+        self.fluent.db(id, on: self.eventLoopGroup.any())
     }
 
     /// Fluent interface object

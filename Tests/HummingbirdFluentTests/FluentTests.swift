@@ -77,7 +77,7 @@ final class FluentTests: XCTestCase {
                                      database: "vapor",
                                      tlsConfiguration: .forClient(certificateVerification: .none)
          ), as: .mysql) */
-        // add persist
+        // add migration
         app.fluent.migrations.add(CreatePlanet())
         // run migrations
         try app.fluent.migrate().wait()
@@ -105,6 +105,60 @@ final class FluentTests: XCTestCase {
 
         try app.XCTStart()
         defer { app.XCTStop() }
+
+        let planet = Planet(name: "Saturn")
+        let id = try app.XCTExecute(
+            uri: "/planet",
+            method: .PUT,
+            body: JSONEncoder().encodeAsByteBuffer(planet, allocator: ByteBufferAllocator())
+        ) { response in
+            let buffer = try XCTUnwrap(response.body)
+            let createResponse = try JSONDecoder().decode(CreateResponse.self, from: buffer)
+            return createResponse.id
+        }
+
+        let planet2 = try app.XCTExecute(
+            uri: "/planet/\(id.uuidString)",
+            method: .GET
+        ) { response in
+            let buffer = try XCTUnwrap(response.body)
+            return try JSONDecoder().decode(Planet.self, from: buffer)
+        }
+        XCTAssertEqual(planet2.name, "Saturn")
+    }
+
+    func testPutGetOutsidApplication() async throws {
+        let app = HBApplication(testing: .live)
+        app.decoder = JSONDecoder()
+        app.encoder = JSONEncoder()
+
+        let fluent = HBFluent(
+            eventLoopGroup: app.eventLoopGroup, threadPool: app.threadPool, logger: app.logger
+        )
+
+        // add sqlite database
+        fluent.databases.use(.sqlite(.memory), as: .sqlite)
+        // add migration
+        fluent.migrations.add(CreatePlanet())
+        // run migrations
+        try await fluent.migrate()
+        app.router.put("planet") { request in
+            let planet = try request.decode(as: Planet.self)
+            try await planet.create(on: fluent.db(on: request.eventLoop))
+            return CreateResponse(id: planet.id!)
+        }
+        app.router.get("planet/:id") { request in
+            let id = try request.parameters.require("id", as: UUID.self)
+            return try await Planet.query(on: fluent.db(on: request.eventLoop))
+                .filter(\.$id == id)
+                .first()
+        }
+
+        try app.XCTStart()
+        defer {
+            fluent.shutdown()
+            app.XCTStop()
+        }
 
         let planet = Planet(name: "Saturn")
         let id = try app.XCTExecute(
