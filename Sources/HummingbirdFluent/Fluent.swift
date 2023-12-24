@@ -60,26 +60,17 @@ public struct HBFluent {
     /// Fluent history setup
     public let history: History
 
-    ///  Initialize HBFluent
-    /// - Parameter application: application to get NIOThreadPool, EventLoopGroup and Logger from
-    init(application: HBApplication) {
-        self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
-        self.migrations = .init()
-        self.eventLoopGroup = application.eventLoopGroup
-        self.logger = application.logger
-        self.history = .init()
-    }
-
     /// Initialize HBFluent
     /// - Parameters:
     ///   - eventLoopGroup: EventLoopGroup used by databases
     ///   - threadPool: NIOThreadPool used by databases
     ///   - logger: Logger used by databases
     public init(
-        eventLoopGroup: EventLoopGroup,
-        threadPool: NIOThreadPool,
+        eventLoopGroupProvider: EventLoopGroupProvider = .singleton,
+        threadPool: NIOThreadPool = .singleton,
         logger: Logger
     ) {
+        let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
         self.databases = Databases(threadPool: threadPool, on: eventLoopGroup)
         self.migrations = .init()
         self.eventLoopGroup = eventLoopGroup
