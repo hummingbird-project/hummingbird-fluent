@@ -15,7 +15,6 @@ let package = Package(
         // used in tests
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0"),
         // .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
-        // .package(url: "https://github.com/vapor/fluent-mysql-driver.git", from: "4.0.0"),
     ],
     targets: [
         .target(name: "HummingbirdFluent", dependencies: [
@@ -25,7 +24,6 @@ let package = Package(
         .testTarget(name: "HummingbirdFluentTests", dependencies: [
             .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             // .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
-            // .product(name: "FluentMySQLDriver", package: "fluent-mysql-driver"),
             .byName(name: "HummingbirdFluent"),
             .product(name: "HummingbirdFoundation", package: "hummingbird"),
             .product(name: "HummingbirdXCT", package: "hummingbird"),

@@ -53,6 +53,8 @@ public final class HBFluentPersistDriver<C: Clock>: HBPersistDriver {
             try await model.save(on: db)
         } catch let error as DatabaseError where error.isConstraintFailure {
             throw HBPersistError.duplicate
+        } catch {
+            print("\(error)")
         }
     }
 
@@ -77,6 +79,8 @@ public final class HBFluentPersistDriver<C: Clock>: HBPersistDriver {
                 let model = PersistModel(id: key, data: data, expires: date)
                 try await model.save(on: db)
             }
+        } catch {
+            print("\(error)")
         }
     }
 
@@ -148,6 +152,6 @@ struct CreatePersistModel: Migration {
     }
 
     func revert(on database: Database) -> EventLoopFuture<Void> {
-        database.schema("_persist_").delete()
+        database.schema("_hb_persist_").delete()
     }
 }

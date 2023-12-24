@@ -14,12 +14,13 @@
 
 import FluentKit
 import Hummingbird
+import ServiceLifecycle
 
 /// Manage fluent databases and migrations
 ///
 /// You can either create this separate from `HBApplication` or add it to your application
 /// using `HBApplication.addFluent`.
-public struct HBFluent {
+public struct HBFluent: @unchecked Sendable, Service {
     /// Fluent history management
     public class History {
         /// Is history recording enabled
@@ -53,7 +54,7 @@ public struct HBFluent {
     public let databases: Databases
     /// List of migrations
     public let migrations: Migrations
-    /// Event loop group used by migrator
+    /// Event loop group
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
@@ -78,8 +79,8 @@ public struct HBFluent {
         self.history = .init()
     }
 
-    /// Shutdown databases
-    public func shutdown() {
+    public func run() async throws {
+        await GracefulShutdownWaiter().wait()
         self.databases.shutdown()
     }
 
@@ -94,17 +95,31 @@ public struct HBFluent {
     }
 
     /// Run migration if needed
-    public func migrate() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.prepareBatch()
-        }
+    public func migrate() async throws {
+        try await self.migrator.setupIfNeeded().get()
+        try await self.migrator.prepareBatch().get()
     }
 
     /// Run revert if needed
-    public func revert() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.revertAllBatches()
-        }
+    public func revert() async throws {
+        try await self.migrator.setupIfNeeded().get()
+        try await self.migrator.revertAllBatches().get()
+    }
+
+    /// Return Database connection
+    ///
+    /// - Parameters:
+    ///   - id: ID of database
+    ///   - eventLoop: Eventloop database connection is running on
+    /// - Returns: Database connection
+    public func db(_ id: DatabaseID? = nil) -> Database {
+        self.databases
+            .database(
+                id,
+                logger: self.logger,
+                on: self.eventLoopGroup.any(),
+                history: self.history.enabled ? self.history.history : nil
+            )!
     }
 
     /// Return Database connection
@@ -121,19 +136,5 @@ public struct HBFluent {
                 on: eventLoop,
                 history: self.history.enabled ? self.history.history : nil
             )!
-    }
-}
-
-/// async/await
-@available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-extension HBFluent {
-    /// Run migration if needed
-    public func migrate() async throws {
-        try await self.migrate().get()
-    }
-
-    /// Run revert if needed
-    public func revert() async throws {
-        try await self.revert().get()
     }
 }
