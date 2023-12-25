@@ -18,19 +18,17 @@ import Hummingbird
 import NIOCore
 
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
-public final class HBFluentPersistDriver<C: Clock>: HBPersistDriver {
+public final class HBFluentPersistDriver: HBPersistDriver {
     let fluent: HBFluent
     let databaseID: DatabaseID?
-    let clock: C
 
     /// Initialize HBFluentPersistDriver
     /// - Parameters:
     ///   - fluent: Fluent setup
     ///   - databaseID: ID of database to use
-    public init(fluent: HBFluent, databaseID: DatabaseID? = nil, clock: C = .suspending) {
+    public init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
         self.fluent = fluent
         self.databaseID = databaseID
-        self.clock = clock
         self.fluent.migrations.add(CreatePersistModel())
         self.tidy()
     }
