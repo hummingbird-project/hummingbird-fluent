@@ -25,7 +25,7 @@ final class PersistTests: XCTestCase {
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
         // fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
-        let persist = HBFluentPersistDriver(fluent: fluent)
+        let persist = await HBFluentPersistDriver(fluent: fluent)
         // run migrations
         try await fluent.migrate()
 

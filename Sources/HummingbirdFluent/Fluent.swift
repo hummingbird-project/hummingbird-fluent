@@ -16,19 +16,30 @@ import FluentKit
 import Hummingbird
 import ServiceLifecycle
 
+@MainActor
+public struct MainActorBox<Value>: Sendable {
+    let value: Value
+}
+
+extension Databases: @unchecked Sendable {}
+extension DatabaseID: @unchecked Sendable {}
+
 /// Manage fluent databases and migrations
 ///
 /// You can either create this separate from `HBApplication` or add it to your application
 /// using `HBApplication.addFluent`.
-public struct HBFluent: @unchecked Sendable, Service {
+public struct HBFluent: Sendable, Service {
     /// Databases attached
     public let databases: Databases
     /// List of migrations
-    public let migrations: Migrations
+    let _migrations: MainActorBox<Migrations>
     /// Event loop group
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
+
+    @MainActor
+    public var migrations: Migrations { self._migrations.value }
 
     /// Initialize HBFluent
     /// - Parameters:
@@ -42,7 +53,7 @@ public struct HBFluent: @unchecked Sendable, Service {
     ) {
         let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
         self.databases = Databases(threadPool: threadPool, on: eventLoopGroup)
-        self.migrations = .init()
+        self._migrations = .init(value: .init())
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
     }
@@ -53,6 +64,7 @@ public struct HBFluent: @unchecked Sendable, Service {
     }
 
     /// fluent migrator
+    @MainActor
     public var migrator: Migrator {
         Migrator(
             databases: self.databases,
@@ -63,12 +75,14 @@ public struct HBFluent: @unchecked Sendable, Service {
     }
 
     /// Run migration if needed
+    @MainActor
     public func migrate() async throws {
         try await self.migrator.setupIfNeeded().get()
         try await self.migrator.prepareBatch().get()
     }
 
     /// Run revert if needed
+    @MainActor
     public func revert() async throws {
         try await self.migrator.setupIfNeeded().get()
         try await self.migrator.revertAllBatches().get()

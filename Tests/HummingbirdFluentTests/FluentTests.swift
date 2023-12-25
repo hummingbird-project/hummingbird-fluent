@@ -75,7 +75,7 @@ final class FluentTests: XCTestCase {
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
         // fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
         // add migration
-        fluent.migrations.add(CreatePlanet())
+        await fluent.migrations.add(CreatePlanet())
         // run migrations
         try await fluent.migrate()
 

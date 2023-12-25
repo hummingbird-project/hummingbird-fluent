@@ -26,10 +26,10 @@ public final class HBFluentPersistDriver: HBPersistDriver {
     /// - Parameters:
     ///   - fluent: Fluent setup
     ///   - databaseID: ID of database to use
-    public init(fluent: HBFluent, databaseID: DatabaseID? = nil) {
+    public init(fluent: HBFluent, databaseID: DatabaseID? = nil) async {
         self.fluent = fluent
         self.databaseID = databaseID
-        self.fluent.migrations.add(CreatePersistModel())
+        await self.fluent.migrations.add(CreatePersistModel())
         self.tidy()
     }
 
