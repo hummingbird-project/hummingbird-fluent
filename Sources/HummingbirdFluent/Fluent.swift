@@ -21,35 +21,6 @@ import ServiceLifecycle
 /// You can either create this separate from `HBApplication` or add it to your application
 /// using `HBApplication.addFluent`.
 public struct HBFluent: @unchecked Sendable, Service {
-    /// Fluent history management
-    public class History {
-        /// Is history recording enabled
-        public private(set) var enabled: Bool
-        // History of queries to Fluent
-        public private(set) var history: QueryHistory?
-
-        init() {
-            self.enabled = false
-            self.history = nil
-        }
-
-        /// Start recording history
-        public func start() {
-            self.enabled = true
-            self.history = .init()
-        }
-
-        /// Stop recording history
-        public func stop() {
-            self.enabled = false
-        }
-
-        /// Clear history
-        public func clear() {
-            self.history = .init()
-        }
-    }
-
     /// Databases attached
     public let databases: Databases
     /// List of migrations
@@ -58,8 +29,6 @@ public struct HBFluent: @unchecked Sendable, Service {
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
-    /// Fluent history setup
-    public let history: History
 
     /// Initialize HBFluent
     /// - Parameters:
@@ -76,7 +45,6 @@ public struct HBFluent: @unchecked Sendable, Service {
         self.migrations = .init()
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
-        self.history = .init()
     }
 
     public func run() async throws {
@@ -110,31 +78,17 @@ public struct HBFluent: @unchecked Sendable, Service {
     ///
     /// - Parameters:
     ///   - id: ID of database
-    ///   - eventLoop: Eventloop database connection is running on
+    ///   - history: Query history storage
+    ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
-    public func db(_ id: DatabaseID? = nil) -> Database {
+    public func db(_ id: DatabaseID? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
         self.databases
             .database(
                 id,
                 logger: self.logger,
                 on: self.eventLoopGroup.any(),
-                history: self.history.enabled ? self.history.history : nil
-            )!
-    }
-
-    /// Return Database connection
-    ///
-    /// - Parameters:
-    ///   - id: ID of database
-    ///   - eventLoop: Eventloop database connection is running on
-    /// - Returns: Database connection
-    public func db(_ id: DatabaseID? = nil, on eventLoop: EventLoop) -> Database {
-        self.databases
-            .database(
-                id,
-                logger: self.logger,
-                on: eventLoop,
-                history: self.history.enabled ? self.history.history : nil
+                history: history,
+                pageSizeLimit: pageSizeLimit
             )!
     }
 }
