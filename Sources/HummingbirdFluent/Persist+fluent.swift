@@ -12,23 +12,28 @@
 //
 //===----------------------------------------------------------------------===//
 
+import AsyncAlgorithms
 import FluentKit
 import Foundation
 import Hummingbird
 import NIOCore
+import ServiceLifecycle
 
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
 public final class HBFluentPersistDriver: HBPersistDriver {
     let fluent: HBFluent
     let databaseID: DatabaseID?
+    let tidyUpFrequency: Duration
 
     /// Initialize HBFluentPersistDriver
     /// - Parameters:
     ///   - fluent: Fluent setup
     ///   - databaseID: ID of database to use
-    public init(fluent: HBFluent, databaseID: DatabaseID? = nil) async {
+    ///   - tidyUpFrequequency: How frequently cleanup expired database entries should occur
+    public init(fluent: HBFluent, databaseID: DatabaseID? = nil, tidyUpFrequency: Duration = .seconds(600)) async {
         self.fluent = fluent
         self.databaseID = databaseID
+        self.tidyUpFrequency = tidyUpFrequency
         await self.fluent.migrations.add(CreatePersistModel())
         self.tidy()
     }
@@ -100,6 +105,17 @@ public final class HBFluentPersistDriver: HBPersistDriver {
         _ = PersistModel.query(on: self.fluent.db(self.databaseID))
             .filter(\.$expires < Date())
             .delete()
+    }
+}
+
+/// Service protocol requirements
+extension HBFluentPersistDriver {
+    public func run() async throws {
+        let timerSequence = AsyncTimerSequence(interval: self.tidyUpFrequency, clock: .suspending)
+            .cancelOnGracefulShutdown()
+        for try await _ in timerSequence {
+            self.tidy()
+        }
     }
 }
 
