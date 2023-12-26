@@ -18,10 +18,9 @@ import ServiceLifecycle
 
 @MainActor
 public struct MainActorBox<Value>: Sendable {
-    let value: Value
+    public let value: Value
 }
 
-extension Databases: @unchecked Sendable {}
 extension DatabaseID: @unchecked Sendable {}
 
 /// Manage fluent databases and migrations
@@ -29,17 +28,18 @@ extension DatabaseID: @unchecked Sendable {}
 /// You can either create this separate from `HBApplication` or add it to your application
 /// using `HBApplication.addFluent`.
 public struct HBFluent: Sendable, Service {
-    /// Databases attached
-    public let databases: Databases
-    /// List of migrations
-    let _migrations: MainActorBox<Migrations>
     /// Event loop group
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
-
+    /// List of migrations. Only accessible from the main actor
     @MainActor
     public var migrations: Migrations { self._migrations.value }
+    /// Databases attached
+    public var databases: Databases { self._databases.wrappedValue }
+
+    private let _databases: UnsafeTransfer<Databases>
+    private let _migrations: MainActorBox<Migrations>
 
     /// Initialize HBFluent
     /// - Parameters:
@@ -52,7 +52,7 @@ public struct HBFluent: Sendable, Service {
         logger: Logger
     ) {
         let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
-        self.databases = Databases(threadPool: threadPool, on: eventLoopGroup)
+        self._databases = .init(Databases(threadPool: threadPool, on: eventLoopGroup))
         self._migrations = .init(value: .init())
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
@@ -60,7 +60,7 @@ public struct HBFluent: Sendable, Service {
 
     public func run() async throws {
         await GracefulShutdownWaiter().wait()
-        self.databases.shutdown()
+        self._databases.wrappedValue.shutdown()
     }
 
     /// fluent migrator
@@ -96,7 +96,7 @@ public struct HBFluent: Sendable, Service {
     ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
     public func db(_ id: DatabaseID? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
-        self.databases
+        self._databases.wrappedValue
             .database(
                 id,
                 logger: self.logger,
