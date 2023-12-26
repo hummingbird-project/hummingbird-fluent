@@ -21,7 +21,6 @@ import XCTest
 
 final class PersistTests: XCTestCase {
     func createRouter(fluent: HBFluent) async throws -> (HBRouter<some HBRequestContext>, HBPersistDriver) {
-        let fluent = HBFluent(logger: Logger(label: "FluentTests"))
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
         // fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
@@ -188,7 +187,6 @@ final class PersistTests: XCTestCase {
         app.addService(fluent)
 
         try await app.test(.live) { client in
-
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/codable/\(tag)", method: .put, body: ByteBufferAllocator().buffer(string: "Persist")) { _ in }
             try await client.XCTExecute(uri: "/codable/\(tag)", method: .get) { response in
@@ -219,7 +217,6 @@ final class PersistTests: XCTestCase {
         var app = HBApplication(responder: router.buildResponder())
         app.addService(fluent)
         try await app.test(.live) { client in
-
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/persist/\(tag)/0", method: .put, body: ByteBufferAllocator().buffer(string: "ThisIsTest1")) { _ in }
             try await Task.sleep(nanoseconds: 1_000_000_000)
