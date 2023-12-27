@@ -93,7 +93,7 @@ final class FluentTests: XCTestCase {
                 .first()
         }
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent)
         try await app.test(.live) { client in
             let planet = Planet(name: "Saturn")
             let id = try await client.XCTExecute(

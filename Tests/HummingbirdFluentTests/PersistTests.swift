@@ -59,9 +59,9 @@ final class PersistTests: XCTestCase {
         var logger = Logger(label: "FluentTests")
         logger.logLevel = .trace
         let fluent = HBFluent(logger: logger)
-        let (router, _) = try await createRouter(fluent: fluent)
+        let (router, persist) = try await createRouter(fluent: fluent)
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/persist/\(tag)", method: .put, body: ByteBufferAllocator().buffer(string: "Persist")) { _ in }
@@ -83,7 +83,7 @@ final class PersistTests: XCTestCase {
             return .ok
         }
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/create/\(tag)", method: .put, body: ByteBufferAllocator().buffer(string: "Persist")) { _ in }
@@ -108,7 +108,7 @@ final class PersistTests: XCTestCase {
             return .ok
         }
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/create/\(tag)", method: .put, body: ByteBufferAllocator().buffer(string: "Persist")) { response in
@@ -122,9 +122,9 @@ final class PersistTests: XCTestCase {
 
     func testSetTwice() async throws {
         let fluent = HBFluent(logger: Logger(label: "FluentTests"))
-        let (router, _) = try await createRouter(fluent: fluent)
+        let (router, persist) = try await createRouter(fluent: fluent)
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
 
             let tag = UUID().uuidString
@@ -141,9 +141,9 @@ final class PersistTests: XCTestCase {
 
     func testExpires() async throws {
         let fluent = HBFluent(logger: Logger(label: "FluentTests"))
-        let (router, _) = try await createRouter(fluent: fluent)
+        let (router, persist) = try await createRouter(fluent: fluent)
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
 
             let tag1 = UUID().uuidString
@@ -184,7 +184,7 @@ final class PersistTests: XCTestCase {
             return value?.buffer
         }
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
 
         try await app.test(.live) { client in
             let tag = UUID().uuidString
@@ -198,9 +198,9 @@ final class PersistTests: XCTestCase {
 
     func testRemove() async throws {
         let fluent = HBFluent(logger: Logger(label: "FluentTests"))
-        let (router, _) = try await createRouter(fluent: fluent)
+        let (router, persist) = try await createRouter(fluent: fluent)
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/persist/\(tag)", method: .put, body: ByteBufferAllocator().buffer(string: "ThisIsTest1")) { _ in }
@@ -213,9 +213,9 @@ final class PersistTests: XCTestCase {
 
     func testExpireAndAdd() async throws {
         let fluent = HBFluent(logger: Logger(label: "FluentTests"))
-        let (router, _) = try await createRouter(fluent: fluent)
+        let (router, persist) = try await createRouter(fluent: fluent)
         var app = HBApplication(responder: router.buildResponder())
-        app.addService(fluent)
+        app.addServices(fluent, persist)
         try await app.test(.live) { client in
             let tag = UUID().uuidString
             try await client.XCTExecute(uri: "/persist/\(tag)/0", method: .put, body: ByteBufferAllocator().buffer(string: "ThisIsTest1")) { _ in }
