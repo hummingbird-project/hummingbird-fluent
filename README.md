@@ -2,7 +2,7 @@
 
 Hummingbird interface to the [Fluent](https://github.com/vapor/fluent-kit) database ORM.
 
-Hummingbird doesn't come with any database drivers or ORM. This library provides a connection to Vapor's database ORM. The Vapor guys have been generous and forward thinking enough to ensure Fluent-kit can be used independent of Vapor. They have a small library that links Vapor to Fluent, this library does pretty much the same thing for Hummingbird.
+Hummingbird doesn't come with any database drivers or ORM. This library provides a connection to Vapor's database ORM. The Vapor guys have been generous and forward thinking enough to ensure Fluent-kit can be used independent of Vapor. This package collates the fluent features into one. It also provides a driver for the Hummingbird Persist framework.
 
 ## Usage
 
@@ -12,30 +12,38 @@ The following initializes an SQLite database and adds a single migration `Create
 import FluentSQLiteDriver
 import HummingbirdFluent
 
-let app = HBApplication()
-// add Fluent
-app.addFluent()
+let logger = Logger(label: "MyApp")
+let fluent = HBFluent(logger: logger)
 // add sqlite database
-app.fluent.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
-// add migrations
-app.fluent.migrations.add(CreateTodo())
+fluent.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
+// add migration
+await fluent.migrations.add(CreateTodo())
 // migrate
 if arguments.migrate {
-    try app.fluent.migrate().wait()
+    try fluent.migrate().wait()
 }
 ```
-In general the interface to Fluent follows the same pattern as Vapor, except the `db` and `migrations` objects are only accessible from within the `fluent` object, and you need to call `HBApplication.addFluent()` at initialization.
 
-Fluent can be used from a route as follows. The database is accessible via `HBRequest.db`.
+Fluent can be used from a route as follows.
 
 ```swift
-app.router
-    .endpoint("todos")
-    .get(":id") { request in 
-        guard let id = request.parameters.get("id", as: UUID.self) else { return request.failure(HBHTTPError(.badRequest)) }
-        return Todo.find(id, on: request.db)
+let router = HBRouter()
+router
+    .group("todos")
+    .get(":id") { request, context in 
+        guard let id = context.parameters.get("id", as: UUID.self) else { return request.failure(HBHTTPError(.badRequest)) }
+        return Todo.find(id, on: fluent.db())
     }
 ```
-Here we are returning a `Todo` with an id specified in the path.
+Here we are returning a `Todo` with an id specified in the request URI.
+
+You can then bring this together by creating an application that uses the router and adding fluent to its list of services
+
+```swift
+var app = HBApplication(router: router)
+// add the fluent service to the application so it can manage shutdown correctly
+app.addServices(fluent)
+try await app.runService()
+```
 
 You can find more documentation on Fluent [here](https://docs.vapor.codes/4.0/fluent/overview/).
