@@ -4,12 +4,11 @@ on:
   push:
     branches:
     - main
+    - 2.x.x
     paths:
     - '**.swift'
     - '**.yml'
   pull_request:
-    branches:
-    - main
     paths:
     - '**.swift'
     - '**.yml'
@@ -21,15 +20,14 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'swift:5.6'
-          - 'swift:5.7'
-          - 'swift:5.8'
+          - 'swift:5.9'
+          - 'swiftlang/swift:nightly-5.10-jammy'
     
     container:
       image: ${{ matrix.image }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Build
       run: |
-        swift build
+        swift test
