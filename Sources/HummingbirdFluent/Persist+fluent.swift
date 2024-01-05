@@ -49,7 +49,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
         } catch let error as DatabaseError where error.isConstraintFailure {
             throw HBPersistError.duplicate
         } catch {
-            print("\(error)")
+            self.fluent.logger.debug("Error: \(error)")
         }
     }
 
@@ -75,7 +75,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
                 try await model.save(on: db)
             }
         } catch {
-            print("\(error)")
+            self.fluent.logger.debug("Error: \(error)")
         }
     }
 
