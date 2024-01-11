@@ -12,9 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import FluentPostgresDriver
 import FluentSQLiteDriver
-// import FluentMySQLDriver
-// import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
 import XCTest
@@ -25,8 +24,20 @@ final class PersistTests: XCTestCase {
         logger.logLevel = .trace
         let fluent = HBFluent(logger: logger)
         // add sqlite database
-        fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        // fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
+        // fluent.databases.use(.sqlite(.memory), as: .sqlite)
+        fluent.databases.use(
+            .postgres(
+                configuration: .init(
+                    hostname: "localhost",
+                    port: 5432,
+                    username: "hummingbird",
+                    password: "hummingbird",
+                    database: "hummingbird", tls: .disable
+                ),
+                maxConnectionsPerEventLoop: 32
+            ),
+            as: .psql
+        )
         let persist = await HBFluentPersistDriver(fluent: fluent)
         // run migrations
         try await fluent.migrate()

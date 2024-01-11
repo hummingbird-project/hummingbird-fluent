@@ -21,8 +21,6 @@ public struct MainActorBox<Value>: Sendable {
     public let value: Value
 }
 
-extension DatabaseID: @unchecked Sendable {}
-
 /// Manage fluent databases and migrations
 ///
 /// You can either create this separate from `HBApplication` or add it to your application
@@ -60,6 +58,10 @@ public struct HBFluent: Sendable, Service {
 
     public func run() async throws {
         await GracefulShutdownWaiter().wait()
+        try await self.shutdown()
+    }
+
+    public func shutdown() async throws {
         self._databases.wrappedValue.shutdown()
     }
 
@@ -74,18 +76,28 @@ public struct HBFluent: Sendable, Service {
         )
     }
 
-    /// Run migration if needed
+    /// Run migration if needed. If it fails then it will shutdown fluent
     @MainActor
     public func migrate() async throws {
-        try await self.migrator.setupIfNeeded().get()
-        try await self.migrator.prepareBatch().get()
+        do {
+            try await self.migrator.setupIfNeeded().get()
+            try await self.migrator.prepareBatch().get()
+        } catch {
+            try await self.shutdown()
+            throw error
+        }
     }
 
-    /// Run revert if needed
+    /// Run revert if needed. If it fails then it will shutdown fluent
     @MainActor
     public func revert() async throws {
-        try await self.migrator.setupIfNeeded().get()
-        try await self.migrator.revertAllBatches().get()
+        do {
+            try await self.migrator.setupIfNeeded().get()
+            try await self.migrator.revertAllBatches().get()
+        } catch {
+            try await self.shutdown()
+            throw error
+        }
     }
 
     /// Return Database connection
