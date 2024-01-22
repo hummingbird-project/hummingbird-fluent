@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", branch: "2.x.x"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0-alpha.1"),
         .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.45.1"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.0.0"),
         // used in tests
@@ -29,7 +29,6 @@ let package = Package(
             .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
             .byName(name: "HummingbirdFluent"),
-            .product(name: "HummingbirdFoundation", package: "hummingbird"),
             .product(name: "HummingbirdXCT", package: "hummingbird"),
         ]),
     ]

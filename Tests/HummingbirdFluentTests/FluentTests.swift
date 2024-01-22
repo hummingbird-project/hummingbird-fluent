@@ -2,7 +2,7 @@
 //
 // This source file is part of the Hummingbird server framework project
 //
-// Copyright (c) 2021-2021 the Hummingbird authors
+// Copyright (c) 2021-2024 the Hummingbird authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -73,16 +73,27 @@ final class FluentTests: XCTestCase {
         )
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        // fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
+        /* fluent.databases.use(
+             .postgres(
+                 configuration: .init(
+                     hostname: "localhost",
+                     port: 5432,
+                     username: "hummingbird",
+                     password: "hummingbird",
+                     database: "hummingbird", tls: .disable
+                 ),
+                 maxConnectionsPerEventLoop: 32
+             ),
+             as: .psql
+         ) */
         // add migration
         await fluent.migrations.add(CreatePlanet())
         // run migrations
         try await fluent.migrate()
 
         let router = HBRouter()
-        router.middlewares.add(HBSetCodableMiddleware(decoder: JSONDecoder(), encoder: JSONEncoder()))
         router.put("planet") { request, context in
-            let planet = try await request.decode(as: Planet.self, using: context)
+            let planet = try await request.decode(as: Planet.self, context: context)
             try await planet.create(on: fluent.db())
             return CreateResponse(id: planet.id!)
         }

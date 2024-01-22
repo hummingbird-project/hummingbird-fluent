@@ -2,7 +2,7 @@
 //
 // This source file is part of the Hummingbird server framework project
 //
-// Copyright (c) 2021-2021 the Hummingbird authors
+// Copyright (c) 2021-2024 the Hummingbird authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -24,20 +24,20 @@ final class PersistTests: XCTestCase {
         logger.logLevel = .trace
         let fluent = HBFluent(logger: logger)
         // add sqlite database
-        // fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        fluent.databases.use(
-            .postgres(
-                configuration: .init(
-                    hostname: "localhost",
-                    port: 5432,
-                    username: "hummingbird",
-                    password: "hummingbird",
-                    database: "hummingbird", tls: .disable
-                ),
-                maxConnectionsPerEventLoop: 32
-            ),
-            as: .psql
-        )
+        fluent.databases.use(.sqlite(.memory), as: .sqlite)
+        /* fluent.databases.use(
+             .postgres(
+                 configuration: .init(
+                     hostname: "localhost",
+                     port: 5432,
+                     username: "hummingbird",
+                     password: "hummingbird",
+                     database: "hummingbird", tls: .disable
+                 ),
+                 maxConnectionsPerEventLoop: 32
+             ),
+             as: .psql
+         ) */
         let persist = await HBFluentPersistDriver(fluent: fluent)
         // run migrations
         try await fluent.migrate()
