@@ -18,7 +18,6 @@ import FluentSQLiteDriver
 // import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
-import HummingbirdFoundation
 import HummingbirdXCT
 import Logging
 import XCTest
