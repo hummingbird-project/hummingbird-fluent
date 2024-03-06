@@ -18,7 +18,7 @@ import FluentSQLiteDriver
 // import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
-import HummingbirdXCT
+import HummingbirdTesting
 import Logging
 import XCTest
 
@@ -106,7 +106,7 @@ final class FluentTests: XCTestCase {
         app.addServices(fluent)
         try await app.test(.live) { client in
             let planet = Planet(name: "Saturn")
-            let id = try await client.XCTExecute(
+            let id = try await client.execute(
                 uri: "/planet",
                 method: .put,
                 body: JSONEncoder().encodeAsByteBuffer(planet, allocator: ByteBufferAllocator())
@@ -116,7 +116,7 @@ final class FluentTests: XCTestCase {
                 return createResponse.id
             }
 
-            let planet2 = try await client.XCTExecute(
+            let planet2 = try await client.execute(
                 uri: "/planet/\(id.uuidString)",
                 method: .get
             ) { response in
