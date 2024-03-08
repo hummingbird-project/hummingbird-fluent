@@ -39,7 +39,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Create new key. This doesn't check for the existence of this key already so may fail if the key already exists
-    public func create<Object: Codable>(key: String, value: Object, expires: Duration?) async throws {
+    public func create(key: String, value: some Codable, expires: Duration?) async throws {
         let db = self.fluent.db(self.databaseID)
         let data = try JSONEncoder().encode(value)
         let date = expires.map { Date.now + Double($0.components.seconds) } ?? Date.distantFuture
@@ -54,7 +54,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
     }
 
     /// Set value for key.
-    public func set<Object: Codable>(key: String, value: Object, expires: Duration?) async throws {
+    public func set(key: String, value: some Codable, expires: Duration?) async throws {
         let db = self.fluent.db(self.databaseID)
         let data = try JSONEncoder().encode(value)
         let date = expires.map { Date.now + Double($0.components.seconds) } ?? Date.distantFuture
@@ -66,7 +66,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
             let model = try await PersistModel.query(on: db)
                 .filter(\._$id == key)
                 .first()
-            if let model = model {
+            if let model {
                 model.data = data
                 model.expires = date
                 try await model.update(on: db)
@@ -96,7 +96,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
     public func remove(key: String) async throws {
         let db = self.fluent.db(self.databaseID)
         let model = try await PersistModel.find(key, on: db)
-        guard let model = model else { return }
+        guard let model else { return }
         return try await model.delete(force: true, on: db)
     }
 
