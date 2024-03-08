@@ -57,7 +57,7 @@ public struct HBFluent: Sendable, Service {
     }
 
     public func run() async throws {
-        await GracefulShutdownWaiter().wait()
+        try? await gracefulShutdown()
         try await self.shutdown()
     }
 
