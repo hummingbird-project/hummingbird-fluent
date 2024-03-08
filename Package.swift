@@ -29,7 +29,7 @@ let package = Package(
             .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
             .byName(name: "HummingbirdFluent"),
-            .product(name: "HummingbirdXCT", package: "hummingbird"),
+            .product(name: "HummingbirdTesting", package: "hummingbird"),
         ]),
     ]
 )
