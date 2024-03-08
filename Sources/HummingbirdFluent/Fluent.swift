@@ -2,7 +2,7 @@
 //
 // This source file is part of the Hummingbird server framework project
 //
-// Copyright (c) 2021-2023 the Hummingbird authors
+// Copyright (c) 2021-2024 the Hummingbird authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -14,61 +14,30 @@
 
 import FluentKit
 import Hummingbird
+import ServiceLifecycle
+
+@MainActor
+public struct MainActorBox<Value>: Sendable {
+    public let value: Value
+}
 
 /// Manage fluent databases and migrations
 ///
 /// You can either create this separate from `HBApplication` or add it to your application
 /// using `HBApplication.addFluent`.
-public struct HBFluent {
-    /// Fluent history management
-    public class History {
-        /// Is history recording enabled
-        public private(set) var enabled: Bool
-        // History of queries to Fluent
-        public private(set) var history: QueryHistory?
-
-        init() {
-            self.enabled = false
-            self.history = nil
-        }
-
-        /// Start recording history
-        public func start() {
-            self.enabled = true
-            self.history = .init()
-        }
-
-        /// Stop recording history
-        public func stop() {
-            self.enabled = false
-        }
-
-        /// Clear history
-        public func clear() {
-            self.history = .init()
-        }
-    }
-
-    /// Databases attached
-    public let databases: Databases
-    /// List of migrations
-    public let migrations: Migrations
-    /// Event loop group used by migrator
+public struct HBFluent: Sendable, Service {
+    /// Event loop group
     public let eventLoopGroup: EventLoopGroup
     /// Logger
     public let logger: Logger
-    /// Fluent history setup
-    public let history: History
+    /// List of migrations. Only accessible from the main actor
+    @MainActor
+    public var migrations: Migrations { self._migrations.value }
+    /// Databases attached
+    public var databases: Databases { self._databases.wrappedValue }
 
-    ///  Initialize HBFluent
-    /// - Parameter application: application to get NIOThreadPool, EventLoopGroup and Logger from
-    init(application: HBApplication) {
-        self.databases = Databases(threadPool: application.threadPool, on: application.eventLoopGroup)
-        self.migrations = .init()
-        self.eventLoopGroup = application.eventLoopGroup
-        self.logger = application.logger
-        self.history = .init()
-    }
+    private let _databases: UnsafeTransfer<Databases>
+    private let _migrations: MainActorBox<Migrations>
 
     /// Initialize HBFluent
     /// - Parameters:
@@ -76,23 +45,28 @@ public struct HBFluent {
     ///   - threadPool: NIOThreadPool used by databases
     ///   - logger: Logger used by databases
     public init(
-        eventLoopGroup: EventLoopGroup,
-        threadPool: NIOThreadPool,
+        eventLoopGroupProvider: EventLoopGroupProvider = .singleton,
+        threadPool: NIOThreadPool = .singleton,
         logger: Logger
     ) {
-        self.databases = Databases(threadPool: threadPool, on: eventLoopGroup)
-        self.migrations = .init()
+        let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
+        self._databases = .init(Databases(threadPool: threadPool, on: eventLoopGroup))
+        self._migrations = .init(value: .init())
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
-        self.history = .init()
     }
 
-    /// Shutdown databases
-    public func shutdown() {
-        self.databases.shutdown()
+    public func run() async throws {
+        try? await gracefulShutdown()
+        try await self.shutdown()
+    }
+
+    public func shutdown() async throws {
+        self._databases.wrappedValue.shutdown()
     }
 
     /// fluent migrator
+    @MainActor
     public var migrator: Migrator {
         Migrator(
             databases: self.databases,
@@ -102,17 +76,27 @@ public struct HBFluent {
         )
     }
 
-    /// Run migration if needed
-    public func migrate() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.prepareBatch()
+    /// Run migration if needed. If it fails then it will shutdown fluent
+    @MainActor
+    public func migrate() async throws {
+        do {
+            try await self.migrator.setupIfNeeded().get()
+            try await self.migrator.prepareBatch().get()
+        } catch {
+            try await self.shutdown()
+            throw error
         }
     }
 
-    /// Run revert if needed
-    public func revert() -> EventLoopFuture<Void> {
-        self.migrator.setupIfNeeded().flatMap {
-            self.migrator.revertAllBatches()
+    /// Run revert if needed. If it fails then it will shutdown fluent
+    @MainActor
+    public func revert() async throws {
+        do {
+            try await self.migrator.setupIfNeeded().get()
+            try await self.migrator.revertAllBatches().get()
+        } catch {
+            try await self.shutdown()
+            throw error
         }
     }
 
@@ -120,29 +104,17 @@ public struct HBFluent {
     ///
     /// - Parameters:
     ///   - id: ID of database
-    ///   - eventLoop: Eventloop database connection is running on
+    ///   - history: Query history storage
+    ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
-    public func db(_ id: DatabaseID? = nil, on eventLoop: EventLoop) -> Database {
-        self.databases
+    public func db(_ id: DatabaseID? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
+        self._databases.wrappedValue
             .database(
                 id,
                 logger: self.logger,
-                on: eventLoop,
-                history: self.history.enabled ? self.history.history : nil
+                on: self.eventLoopGroup.any(),
+                history: history,
+                pageSizeLimit: pageSizeLimit
             )!
-    }
-}
-
-/// async/await
-@available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-extension HBFluent {
-    /// Run migration if needed
-    public func migrate() async throws {
-        try await self.migrate().get()
-    }
-
-    /// Run revert if needed
-    public func revert() async throws {
-        try await self.revert().get()
     }
 }

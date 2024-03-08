@@ -2,7 +2,7 @@
 //
 // This source file is part of the Hummingbird server framework project
 //
-// Copyright (c) 2021-2021 the Hummingbird authors
+// Copyright (c) 2021-2024 the Hummingbird authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -18,8 +18,8 @@ import FluentSQLiteDriver
 // import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
-import HummingbirdFoundation
-import HummingbirdXCT
+import HummingbirdTesting
+import Logging
 import XCTest
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
@@ -61,123 +61,69 @@ final class FluentTests: XCTestCase {
         }
     }
 
-    func createApplication() throws -> HBApplication {
-        let app = HBApplication(testing: .live)
-        app.decoder = JSONDecoder()
-        app.encoder = JSONEncoder()
-        // add Fluent
-        app.addFluent()
-        // add sqlite database
-        app.fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        // app.fluent.databases.use(.postgres(hostname: "localhost", username: "postgres", password: "vapor", database: "vapor"), as: .psql)
-        /* app.fluent.databases.use(.mysql(
-                                     hostname: "localhost",
-                                     username: "root",
-                                     password: "vapor",
-                                     database: "vapor",
-                                     tlsConfiguration: .forClient(certificateVerification: .none)
-         ), as: .mysql) */
-        // add migration
-        app.fluent.migrations.add(CreatePlanet())
-        // run migrations
-        try app.fluent.migrate().wait()
-
-        return app
-    }
-
     struct CreateResponse: HBResponseCodable {
         let id: UUID
     }
 
     func testPutGet() async throws {
-        let app = try createApplication()
-        app.router.put("planet") { request in
-            let planet = try request.decode(as: Planet.self)
-            try await planet.create(on: request.db)
-            return CreateResponse(id: planet.id!)
-        }
-        app.router.get("planet/:id") { request in
-            let id = try request.parameters.require("id", as: UUID.self)
-            return try await Planet.query(on: request.db)
-                .filter(\.$id == id)
-                .first()
-        }
-
-        try app.XCTStart()
-        defer { app.XCTStop() }
-
-        let planet = Planet(name: "Saturn")
-        let id = try app.XCTExecute(
-            uri: "/planet",
-            method: .PUT,
-            body: JSONEncoder().encodeAsByteBuffer(planet, allocator: ByteBufferAllocator())
-        ) { response in
-            let buffer = try XCTUnwrap(response.body)
-            let createResponse = try JSONDecoder().decode(CreateResponse.self, from: buffer)
-            return createResponse.id
-        }
-
-        let planet2 = try app.XCTExecute(
-            uri: "/planet/\(id.uuidString)",
-            method: .GET
-        ) { response in
-            let buffer = try XCTUnwrap(response.body)
-            return try JSONDecoder().decode(Planet.self, from: buffer)
-        }
-        XCTAssertEqual(planet2.name, "Saturn")
-    }
-
-    func testPutGetOutsidApplication() async throws {
-        let app = HBApplication(testing: .live)
-        app.decoder = JSONDecoder()
-        app.encoder = JSONEncoder()
-
+        let logger = Logger(label: "FluentTests")
         let fluent = HBFluent(
-            eventLoopGroup: app.eventLoopGroup, threadPool: app.threadPool, logger: app.logger
+            logger: logger
         )
-
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
+        /* fluent.databases.use(
+             .postgres(
+                 configuration: .init(
+                     hostname: "localhost",
+                     port: 5432,
+                     username: "hummingbird",
+                     password: "hummingbird",
+                     database: "hummingbird", tls: .disable
+                 ),
+                 maxConnectionsPerEventLoop: 32
+             ),
+             as: .psql
+         ) */
         // add migration
-        fluent.migrations.add(CreatePlanet())
+        await fluent.migrations.add(CreatePlanet())
         // run migrations
         try await fluent.migrate()
-        app.router.put("planet") { request in
-            let planet = try request.decode(as: Planet.self)
-            try await planet.create(on: fluent.db(on: request.eventLoop))
+
+        let router = HBRouter()
+        router.put("planet") { request, context in
+            let planet = try await request.decode(as: Planet.self, context: context)
+            try await planet.create(on: fluent.db())
             return CreateResponse(id: planet.id!)
         }
-        app.router.get("planet/:id") { request in
-            let id = try request.parameters.require("id", as: UUID.self)
-            return try await Planet.query(on: fluent.db(on: request.eventLoop))
+        router.get("planet/:id") { _, context in
+            let id = try context.parameters.require("id", as: UUID.self)
+            return try await Planet.query(on: fluent.db())
                 .filter(\.$id == id)
                 .first()
         }
+        var app = HBApplication(responder: router.buildResponder())
+        app.addServices(fluent)
+        try await app.test(.live) { client in
+            let planet = Planet(name: "Saturn")
+            let id = try await client.execute(
+                uri: "/planet",
+                method: .put,
+                body: JSONEncoder().encodeAsByteBuffer(planet, allocator: ByteBufferAllocator())
+            ) { response in
+                let buffer = try XCTUnwrap(response.body)
+                let createResponse = try JSONDecoder().decode(CreateResponse.self, from: buffer)
+                return createResponse.id
+            }
 
-        try app.XCTStart()
-        defer {
-            fluent.shutdown()
-            app.XCTStop()
+            let planet2 = try await client.execute(
+                uri: "/planet/\(id.uuidString)",
+                method: .get
+            ) { response in
+                let buffer = try XCTUnwrap(response.body)
+                return try JSONDecoder().decode(Planet.self, from: buffer)
+            }
+            XCTAssertEqual(planet2.name, "Saturn")
         }
-
-        let planet = Planet(name: "Saturn")
-        let id = try app.XCTExecute(
-            uri: "/planet",
-            method: .PUT,
-            body: JSONEncoder().encodeAsByteBuffer(planet, allocator: ByteBufferAllocator())
-        ) { response in
-            let buffer = try XCTUnwrap(response.body)
-            let createResponse = try JSONDecoder().decode(CreateResponse.self, from: buffer)
-            return createResponse.id
-        }
-
-        let planet2 = try app.XCTExecute(
-            uri: "/planet/\(id.uuidString)",
-            method: .GET
-        ) { response in
-            let buffer = try XCTUnwrap(response.body)
-            return try JSONDecoder().decode(Planet.self, from: buffer)
-        }
-        XCTAssertEqual(planet2.name, "Saturn")
     }
 }
