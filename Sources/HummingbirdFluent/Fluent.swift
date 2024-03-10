@@ -22,10 +22,7 @@ public struct MainActorBox<Value>: Sendable {
 }
 
 /// Manage fluent databases and migrations
-///
-/// You can either create this separate from `HBApplication` or add it to your application
-/// using `HBApplication.addFluent`.
-public struct HBFluent: Sendable, Service {
+public struct Fluent: Sendable, Service {
     /// Event loop group
     public let eventLoopGroup: EventLoopGroup
     /// Logger
@@ -39,7 +36,7 @@ public struct HBFluent: Sendable, Service {
     private let _databases: UnsafeTransfer<Databases>
     private let _migrations: MainActorBox<Migrations>
 
-    /// Initialize HBFluent
+    /// Initialize Fluent
     /// - Parameters:
     ///   - eventLoopGroup: EventLoopGroup used by databases
     ///   - threadPool: NIOThreadPool used by databases

@@ -24,7 +24,7 @@ import XCTest
 
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 final class FluentTests: XCTestCase {
-    final class Planet: Model, HBResponseCodable {
+    final class Planet: Model, ResponseCodable {
         // Name of the table or collection.
         static let schema = "planets"
 
@@ -61,13 +61,13 @@ final class FluentTests: XCTestCase {
         }
     }
 
-    struct CreateResponse: HBResponseCodable {
+    struct CreateResponse: ResponseCodable {
         let id: UUID
     }
 
     func testPutGet() async throws {
         let logger = Logger(label: "FluentTests")
-        let fluent = HBFluent(
+        let fluent = Fluent(
             logger: logger
         )
         // add sqlite database
@@ -90,7 +90,7 @@ final class FluentTests: XCTestCase {
         // run migrations
         try await fluent.migrate()
 
-        let router = HBRouter()
+        let router = Router()
         router.put("planet") { request, context in
             let planet = try await request.decode(as: Planet.self, context: context)
             try await planet.create(on: fluent.db())
@@ -102,7 +102,7 @@ final class FluentTests: XCTestCase {
                 .filter(\.$id == id)
                 .first()
         }
-        var app = HBApplication(responder: router.buildResponder())
+        var app = Application(responder: router.buildResponder())
         app.addServices(fluent)
         try await app.test(.live) { client in
             let planet = Planet(name: "Saturn")
