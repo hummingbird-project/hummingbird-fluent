@@ -13,7 +13,7 @@ import FluentSQLiteDriver
 import HummingbirdFluent
 
 let logger = Logger(label: "MyApp")
-let fluent = HBFluent(logger: logger)
+let fluent = Fluent(logger: logger)
 // add sqlite database
 fluent.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
 // add migration
@@ -27,11 +27,11 @@ if arguments.migrate {
 Fluent can be used from a route as follows.
 
 ```swift
-let router = HBRouter()
+let router = Router()
 router
     .group("todos")
     .get(":id") { request, context in 
-        guard let id = context.parameters.get("id", as: UUID.self) else { return request.failure(HBHTTPError(.badRequest)) }
+        guard let id = context.parameters.get("id", as: UUID.self) else { return request.failure(HTTPError(.badRequest)) }
         return Todo.find(id, on: fluent.db())
     }
 ```
@@ -40,7 +40,7 @@ Here we are returning a `Todo` with an id specified in the request URI.
 You can then bring this together by creating an application that uses the router and adding fluent to its list of services
 
 ```swift
-var app = HBApplication(router: router)
+var app = Application(router: router)
 // add the fluent service to the application so it can manage shutdown correctly
 app.addServices(fluent)
 try await app.runService()

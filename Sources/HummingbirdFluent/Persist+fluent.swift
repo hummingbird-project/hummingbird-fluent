@@ -20,17 +20,17 @@ import NIOCore
 import ServiceLifecycle
 
 /// Fluent driver for persist system for storing persistent cross request key/value pairs
-public final class HBFluentPersistDriver: HBPersistDriver {
-    let fluent: HBFluent
+public final class FluentPersistDriver: PersistDriver {
+    let fluent: Fluent
     let databaseID: DatabaseID?
     let tidyUpFrequency: Duration
 
-    /// Initialize HBFluentPersistDriver
+    /// Initialize FluentPersistDriver
     /// - Parameters:
     ///   - fluent: Fluent setup
     ///   - databaseID: ID of database to use
     ///   - tidyUpFrequequency: How frequently cleanup expired database entries should occur
-    public init(fluent: HBFluent, databaseID: DatabaseID? = nil, tidyUpFrequency: Duration = .seconds(600)) async {
+    public init(fluent: Fluent, databaseID: DatabaseID? = nil, tidyUpFrequency: Duration = .seconds(600)) async {
         self.fluent = fluent
         self.databaseID = databaseID
         self.tidyUpFrequency = tidyUpFrequency
@@ -47,7 +47,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
         do {
             try await model.save(on: db)
         } catch let error as DatabaseError where error.isConstraintFailure {
-            throw HBPersistError.duplicate
+            throw PersistError.duplicate
         } catch {
             self.fluent.logger.debug("Error: \(error)")
         }
@@ -109,7 +109,7 @@ public final class HBFluentPersistDriver: HBPersistDriver {
 }
 
 /// Service protocol requirements
-extension HBFluentPersistDriver {
+extension FluentPersistDriver {
     public func run() async throws {
         let timerSequence = AsyncTimerSequence(interval: self.tidyUpFrequency, clock: .suspending)
             .cancelOnGracefulShutdown()
