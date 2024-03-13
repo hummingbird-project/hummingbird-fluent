@@ -16,25 +16,18 @@ import FluentKit
 import Hummingbird
 import ServiceLifecycle
 
-@MainActor
-public struct MainActorBox<Value>: Sendable {
-    public let value: Value
-}
-
 /// Manage fluent databases and migrations
 public struct Fluent: Sendable, Service {
     /// Event loop group
-    public let eventLoopGroup: EventLoopGroup
+    public var eventLoopGroup: EventLoopGroup { self.databases.eventLoopGroup }
     /// Logger
     public let logger: Logger
-    /// List of migrations. Only accessible from the main actor
-    @MainActor
-    public var migrations: Migrations { self._migrations.value }
     /// Databases attached
     public var databases: Databases { self._databases.wrappedValue }
+    /// Database Migrations
+    public var migrations: FluentMigrations
 
     private let _databases: UnsafeTransfer<Databases>
-    private let _migrations: MainActorBox<Migrations>
 
     /// Initialize Fluent
     /// - Parameters:
@@ -48,53 +41,31 @@ public struct Fluent: Sendable, Service {
     ) {
         let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
         self._databases = .init(Databases(threadPool: threadPool, on: eventLoopGroup))
-        self._migrations = .init(value: .init())
-        self.eventLoopGroup = eventLoopGroup
+        self.migrations = .init()
         self.logger = logger
     }
 
+    /// Run Fluent service.
+    ///
+    /// Waits for graceful shutdown and then shuts down any database connections
     public func run() async throws {
         try? await gracefulShutdown()
         try await self.shutdown()
     }
 
+    /// Migrate fluent databases
+    public func migrate() async throws {
+        try await self.migrations.migrate(databases: self.databases, logger: self.logger)
+    }
+
+    /// Revert fluent database migration
+    public func revert() async throws {
+        try await self.migrations.revert(databases: self.databases, logger: self.logger)
+    }
+
+    /// Shutdown Fluent databases
     public func shutdown() async throws {
         self._databases.wrappedValue.shutdown()
-    }
-
-    /// fluent migrator
-    @MainActor
-    public var migrator: Migrator {
-        Migrator(
-            databases: self.databases,
-            migrations: self.migrations,
-            logger: self.logger,
-            on: self.eventLoopGroup.next()
-        )
-    }
-
-    /// Run migration if needed. If it fails then it will shutdown fluent
-    @MainActor
-    public func migrate() async throws {
-        do {
-            try await self.migrator.setupIfNeeded().get()
-            try await self.migrator.prepareBatch().get()
-        } catch {
-            try await self.shutdown()
-            throw error
-        }
-    }
-
-    /// Run revert if needed. If it fails then it will shutdown fluent
-    @MainActor
-    public func revert() async throws {
-        do {
-            try await self.migrator.setupIfNeeded().get()
-            try await self.migrator.revertAllBatches().get()
-        } catch {
-            try await self.shutdown()
-            throw error
-        }
     }
 
     /// Return Database connection
@@ -113,5 +84,61 @@ public struct Fluent: Sendable, Service {
                 history: history,
                 pageSizeLimit: pageSizeLimit
             )!
+    }
+}
+
+/// Manage Fluent database migrations
+public actor FluentMigrations {
+    let migrations: Migrations
+
+    init() {
+        self.migrations = .init()
+    }
+
+    ///  Add array of migrations
+    /// - Parameters:
+    ///   - migrations: Migrations array
+    ///   - id: database id
+    @inlinable
+    public func add(_ migrations: Migration..., to id: DatabaseID? = nil) {
+        self.add(migrations, to: id)
+    }
+
+    ///  Add array of migrations
+    /// - Parameters:
+    ///   - migrations: Migrations array
+    ///   - id: database id
+    public func add(_ migrations: [Migration], to id: DatabaseID? = nil) {
+        self.migrations.add(migrations, to: id)
+    }
+
+    ///  Migrate fluent databases
+    /// - Parameters:
+    ///   - databases: List of databases to migrate
+    ///   - logger: Logger to use
+    func migrate(databases: Databases, logger: Logger) async throws {
+        let migrator = Migrator(
+            databases: databases,
+            migrations: self.migrations,
+            logger: logger,
+            on: databases.eventLoopGroup.any()
+        )
+        try await migrator.setupIfNeeded().get()
+        try await migrator.prepareBatch().get()
+    }
+
+    ///  Revert fluent database migration
+    /// - Parameters:
+    ///   - databases: List of databases on which to revert migrations
+    ///   - logger: Logger to use
+    func revert(databases: Databases, logger: Logger) async throws {
+        let migrator = Migrator(
+            databases: databases,
+            migrations: self.migrations,
+            logger: logger,
+            on: databases.eventLoopGroup.any()
+        )
+        try await migrator.setupIfNeeded().get()
+        try await migrator.revertAllBatches().get()
     }
 }
