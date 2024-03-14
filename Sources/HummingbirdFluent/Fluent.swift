@@ -75,11 +75,11 @@ public struct Fluent: Sendable, Service {
     ///   - history: Query history storage
     ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
-    public func db(_ id: DatabaseID? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
+    public func db(_ id: DatabaseID? = nil, logger: Logger? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
         self._databases.wrappedValue
             .database(
                 id,
-                logger: self.logger,
+                logger: logger ?? self.logger,
                 on: self.eventLoopGroup.any(),
                 history: history,
                 pageSizeLimit: pageSizeLimit
