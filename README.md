@@ -46,4 +46,6 @@ app.addServices(fluent)
 try await app.runService()
 ```
 
-You can find more documentation on Fluent [here](https://docs.vapor.codes/4.0/fluent/overview/).
+## Documentation
+
+Reference documentation for HummingbirdFluent can be found here [here](https://docs.hummingbird.codes/2.0/documentation/hummingbirdfluent) and you can find more documentation on Fluent [here](https://docs.vapor.codes/4.0/fluent/overview/).
