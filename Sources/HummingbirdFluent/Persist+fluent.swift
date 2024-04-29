@@ -120,7 +120,7 @@ extension FluentPersistDriver {
 }
 
 /// Fluent model used to store persist data
-final class PersistModel: Model {
+final class PersistModel: Model, @unchecked Sendable {
     init() {}
 
     // name of persist table

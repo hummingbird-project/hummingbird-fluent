@@ -23,11 +23,9 @@ public struct Fluent: Sendable, Service {
     /// Logger
     public let logger: Logger
     /// Databases attached
-    public var databases: Databases { self._databases.wrappedValue }
+    public let databases: Databases
     /// Database Migrations
     public var migrations: FluentMigrations
-
-    private let _databases: UnsafeTransfer<Databases>
 
     /// Initialize Fluent
     /// - Parameters:
@@ -40,7 +38,7 @@ public struct Fluent: Sendable, Service {
         logger: Logger
     ) {
         let eventLoopGroup = eventLoopGroupProvider.eventLoopGroup
-        self._databases = .init(Databases(threadPool: threadPool, on: eventLoopGroup))
+        self.databases = Databases(threadPool: threadPool, on: eventLoopGroup)
         self.migrations = .init()
         self.logger = logger
     }
@@ -65,7 +63,7 @@ public struct Fluent: Sendable, Service {
 
     /// Shutdown Fluent databases
     public func shutdown() async throws {
-        self._databases.wrappedValue.shutdown()
+        self.databases.shutdown()
     }
 
     /// Return Database connection
@@ -76,7 +74,7 @@ public struct Fluent: Sendable, Service {
     ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
     public func db(_ id: DatabaseID? = nil, logger: Logger? = nil, history: QueryHistory? = nil, pageSizeLimit: Int? = nil) -> Database {
-        self._databases.wrappedValue
+        self.databases
             .database(
                 id,
                 logger: logger ?? self.logger,
