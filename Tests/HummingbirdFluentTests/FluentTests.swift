@@ -22,7 +22,6 @@ import HummingbirdTesting
 import Logging
 import XCTest
 
-@available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 final class FluentTests: XCTestCase {
     final class Planet: Model, ResponseCodable, @unchecked Sendable {
         // Name of the table or collection.
