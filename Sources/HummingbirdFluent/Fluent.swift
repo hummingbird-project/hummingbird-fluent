@@ -145,7 +145,7 @@ public actor FluentMigrations {
     /// - Parameters:
     ///   - databases: List of databases on which to revert migrations
     ///   - logger: Logger to use
-    func revertLast(databases: Databases, logger: Logger) async throws {
+    public func revertLast(databases: Databases, logger: Logger) async throws {
         let migrator = Migrator(
             databases: databases,
             migrations: self.migrations,
