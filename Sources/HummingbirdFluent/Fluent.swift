@@ -87,7 +87,7 @@ public struct Fluent: Sendable, Service {
 
 /// Manage Fluent database migrations
 public actor FluentMigrations {
-    let migrations: Migrations
+    public let migrations: Migrations
 
     init() {
         self.migrations = .init()
@@ -106,6 +106,7 @@ public actor FluentMigrations {
     /// - Parameters:
     ///   - migrations: Migrations array
     ///   - id: database id
+    @inlinable
     public func add(_ migrations: [Migration], to id: DatabaseID? = nil) {
         self.migrations.add(migrations, to: id)
     }
@@ -138,5 +139,20 @@ public actor FluentMigrations {
         )
         try await migrator.setupIfNeeded().get()
         try await migrator.revertAllBatches().get()
+    }
+
+    ///  Revert last batch of fluent database migrations
+    /// - Parameters:
+    ///   - databases: List of databases on which to revert migrations
+    ///   - logger: Logger to use
+    public func revertLast(databases: Databases, logger: Logger) async throws {
+        let migrator = Migrator(
+            databases: databases,
+            migrations: self.migrations,
+            logger: logger,
+            on: databases.eventLoopGroup.any()
+        )
+        try await migrator.setupIfNeeded().get()
+        try await migrator.revertLastBatch().get()
     }
 }
