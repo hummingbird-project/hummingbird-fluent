@@ -17,6 +17,15 @@ import Hummingbird
 import ServiceLifecycle
 
 /// Manage fluent databases and migrations
+///
+/// `Fluent` requires lifecycle management and should be added to your list of services
+/// ```
+/// let fluent = Fluent(logger: logger)
+/// let app = Application(
+///     router: router,
+///     services: [fluent]
+/// )
+/// ````
 public struct Fluent: Sendable, Service {
     /// Event loop group
     public var eventLoopGroup: EventLoopGroup { self.databases.eventLoopGroup }
