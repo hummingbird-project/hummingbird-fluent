@@ -29,7 +29,7 @@ public final class FluentPersistDriver: PersistDriver {
     /// - Parameters:
     ///   - fluent: Fluent setup
     ///   - databaseID: ID of database to use
-    ///   - tidyUpFrequequency: How frequently cleanup expired database entries should occur
+    ///   - tidyUpFrequency: How frequently cleanup expired database entries should occur
     public init(fluent: Fluent, databaseID: DatabaseID? = nil, tidyUpFrequency: Duration = .seconds(600)) async {
         self.fluent = fluent
         self.databaseID = databaseID

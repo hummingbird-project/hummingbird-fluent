@@ -38,7 +38,7 @@ public struct Fluent: Sendable, Service {
 
     /// Initialize Fluent
     /// - Parameters:
-    ///   - eventLoopGroup: EventLoopGroup used by databases
+    ///   - eventLoopGroupProvider: EventLoopGroup used by databases
     ///   - threadPool: NIOThreadPool used by databases
     ///   - logger: Logger used by databases
     public init(
@@ -79,6 +79,7 @@ public struct Fluent: Sendable, Service {
     ///
     /// - Parameters:
     ///   - id: ID of database
+    ///   - logger: Logger database uses
     ///   - history: Query history storage
     ///   - pageSizeLimit: Set page size limit to avoid server overload
     /// - Returns: Database connection
