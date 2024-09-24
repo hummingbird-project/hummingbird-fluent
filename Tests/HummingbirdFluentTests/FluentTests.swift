@@ -14,9 +14,6 @@
 
 import FluentKit
 import FluentSQLiteDriver
-
-// import FluentMySQLDriver
-// import FluentPostgresDriver
 import Hummingbird
 import HummingbirdFluent
 import HummingbirdTesting
@@ -72,19 +69,6 @@ final class FluentTests: XCTestCase {
         )
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        /* fluent.databases.use(
-             .postgres(
-                 configuration: .init(
-                     hostname: "localhost",
-                     port: 5432,
-                     username: "hummingbird",
-                     password: "hummingbird",
-                     database: "hummingbird", tls: .disable
-                 ),
-                 maxConnectionsPerEventLoop: 32
-             ),
-             as: .psql
-         ) */
         // add migration
         await fluent.migrations.add(CreatePlanet())
         // run migrations

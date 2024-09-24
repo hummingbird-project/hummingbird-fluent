@@ -12,7 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-import FluentPostgresDriver
 import FluentSQLiteDriver
 import Hummingbird
 import HummingbirdFluent
@@ -26,19 +25,6 @@ final class PersistTests: XCTestCase {
         let fluent = Fluent(logger: logger)
         // add sqlite database
         fluent.databases.use(.sqlite(.memory), as: .sqlite)
-        /* fluent.databases.use(
-             .postgres(
-                 configuration: .init(
-                     hostname: "localhost",
-                     port: 5432,
-                     username: "hummingbird",
-                     password: "hummingbird",
-                     database: "hummingbird", tls: .disable
-                 ),
-                 maxConnectionsPerEventLoop: 32
-             ),
-             as: .psql
-         ) */
         let persist = await FluentPersistDriver(fluent: fluent)
         // run migrations
         try await fluent.migrate()
