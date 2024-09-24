@@ -20,7 +20,7 @@
 
 Hummingbird interface to the [Fluent](https://github.com/vapor/fluent-kit) database ORM.
 
-Hummingbird doesn't come with any database drivers or ORM. This library provides a connection to Vapor's database ORM. The Vapor guys have been generous and forward thinking enough to ensure Fluent-kit can be used independent of Vapor. This package collates the fluent features into one. It also provides a driver for the Hummingbird Persist framework.
+Hummingbird doesn't come with any database drivers or ORM. This library provides a connection to Vapor's database ORM. The Vapor folks have been generous and forward thinking enough to ensure FluentKit can be used independent of Vapor. This package collates the Fluent features into one. It also provides a driver for the Hummingbird Persist framework.
 
 ## Usage
 
