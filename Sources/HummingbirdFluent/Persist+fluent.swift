@@ -57,8 +57,8 @@ public final class FluentPersistDriver: PersistDriver {
     public func set(key: String, value: some Codable, expires: Duration?) async throws {
         let db = self.fluent.db(self.databaseID)
         let data = try JSONEncoder().encode(value)
-        let date = expires.map { Date.now + Double($0.components.seconds) } ?? Date.distantFuture
-        let model = PersistModel(id: key, data: data, expires: date)
+        let date = expires.map { Date.now + Double($0.components.seconds) }
+        let model = PersistModel(id: key, data: data, expires: date ?? Date.distantFuture)
         do {
             try await model.save(on: db)
         } catch let error as DatabaseError where error.isConstraintFailure {
@@ -68,10 +68,12 @@ public final class FluentPersistDriver: PersistDriver {
                 .first()
             if let model {
                 model.data = data
-                model.expires = date
+                if let date {
+                    model.expires = date
+                }
                 try await model.update(on: db)
             } else {
-                let model = PersistModel(id: key, data: data, expires: date)
+                let model = PersistModel(id: key, data: data, expires: date ?? Date.distantFuture)
                 try await model.save(on: db)
             }
         } catch {
