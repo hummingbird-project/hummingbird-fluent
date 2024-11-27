@@ -19,7 +19,9 @@ import HummingbirdTesting
 import XCTest
 
 final class PersistTests: XCTestCase {
-    func createApplication(_ updateRouter: (Router<BasicRequestContext>, PersistDriver) -> Void = { _, _ in }) async throws -> some ApplicationProtocol {
+    func createApplication(
+        _ updateRouter: (Router<BasicRequestContext>, PersistDriver) -> Void = { _, _ in }
+    ) async throws -> some ApplicationProtocol {
         var logger = Logger(label: "FluentTests")
         logger.logLevel = .trace
         let fluent = Fluent(logger: logger)

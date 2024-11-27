@@ -7,7 +7,7 @@ let package = Package(
     name: "hummingbird-fluent",
     platforms: [.macOS(.v14), .iOS(.v17), .tvOS(.v17)],
     products: [
-        .library(name: "HummingbirdFluent", targets: ["HummingbirdFluent"]),
+        .library(name: "HummingbirdFluent", targets: ["HummingbirdFluent"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0"),
@@ -18,16 +18,22 @@ let package = Package(
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.7.0"),
     ],
     targets: [
-        .target(name: "HummingbirdFluent", dependencies: [
-            .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
-            .product(name: "FluentKit", package: "fluent-kit"),
-            .product(name: "Hummingbird", package: "hummingbird"),
-            .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
-        ]),
-        .testTarget(name: "HummingbirdFluentTests", dependencies: [
-            .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
-            .byName(name: "HummingbirdFluent"),
-            .product(name: "HummingbirdTesting", package: "hummingbird"),
-        ]),
+        .target(
+            name: "HummingbirdFluent",
+            dependencies: [
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+                .product(name: "FluentKit", package: "fluent-kit"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "ServiceLifecycle", package: "swift-service-lifecycle"),
+            ]
+        ),
+        .testTarget(
+            name: "HummingbirdFluentTests",
+            dependencies: [
+                .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
+                .byName(name: "HummingbirdFluent"),
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+            ]
+        ),
     ]
 )
