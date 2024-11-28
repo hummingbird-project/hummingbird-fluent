@@ -90,7 +90,11 @@ public final class FluentPersistDriver: PersistDriver {
                 .filter(\.$expires > Date())
                 .first()
             guard let data = query?.data else { return nil }
-            return try JSONDecoder().decode(object, from: data)
+            do {
+                return try JSONDecoder().decode(object, from: data)
+            } catch is DecodingError {
+                throw PersistError.invalidConversion
+            }
         }
     }
 
