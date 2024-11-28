@@ -181,6 +181,31 @@ final class PersistTests: XCTestCase {
         }
     }
 
+    func testInvalidGetAs() async throws {
+        struct TestCodable: Codable {
+            let buffer: String
+        }
+        let app = try await self.createApplication { router, persist in
+            router.put("/invalid") { _, _ -> HTTPResponse.Status in
+                try await persist.set(key: "test", value: TestCodable(buffer: "hello"))
+                return .ok
+            }
+            router.get("/invalid") { _, _ -> String? in
+                do {
+                    return try await persist.get(key: "test", as: String.self)
+                } catch let error as PersistError where error == .invalidConversion {
+                    throw HTTPError(.badRequest)
+                }
+            }
+        }
+        try await app.test(.router) { client in
+            try await client.execute(uri: "/invalid", method: .put)
+            try await client.execute(uri: "/invalid", method: .get) { response in
+                XCTAssertEqual(response.status, .badRequest)
+            }
+        }
+    }
+
     func testRemove() async throws {
         let app = try await self.createApplication()
         try await app.test(.live) { client in

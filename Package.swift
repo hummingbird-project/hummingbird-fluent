@@ -11,11 +11,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
-        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.48.5"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.5.0"),
+        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.49.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.0.0"),
         // used in tests
-        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.7.0"),
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.8.0"),
     ],
     targets: [
         .target(
