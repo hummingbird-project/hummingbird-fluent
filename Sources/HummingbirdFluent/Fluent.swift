@@ -72,7 +72,7 @@ public struct Fluent: Sendable, Service {
 
     /// Shutdown Fluent databases
     public func shutdown() async throws {
-        self.databases.shutdown()
+        await self.databases.shutdownAsync()
     }
 
     /// Return Database connection
